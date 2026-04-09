@@ -1,0 +1,1180 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Buy-Back Time Simulator</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+<style>
+:root {
+  --primary: #10b981;
+  --primary-light: #d1fae5;
+  --primary-dark: #059669;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --bg: #f8fafc;
+  --card: #ffffff;
+  --text: #1e293b;
+  --text-muted: #64748b;
+  --border: #e2e8f0;
+  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --radius: 12px;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+.app-header {
+  background: var(--card);
+  border-bottom: 1px solid var(--border);
+  padding: 20px 0;
+  text-align: center;
+}
+.app-header h1 { font-size: 1.5rem; }
+.app-header p { color: var(--text-muted); font-size: 0.875rem; margin-top: 4px; }
+.share-btn {
+  margin-top: 10px; padding: 7px 18px; border-radius: 99px;
+  border: 1px solid var(--border); background: var(--card);
+  font-size: 0.82rem; cursor: pointer; transition: all 0.2s; color: var(--text);
+}
+.share-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+.share-btn.copied { background: var(--primary); color: white; border-color: var(--primary); }
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  display: grid;
+  grid-template-columns: 360px 1fr;
+  gap: 24px;
+}
+
+@media (max-width: 900px) {
+  .container { grid-template-columns: 1fr; }
+}
+
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+/* Sidebar */
+.sidebar { display: flex; flex-direction: column; gap: 16px; }
+
+.appliance-card {
+  cursor: pointer;
+  transition: all 0.2s;
+  position: relative;
+}
+.appliance-card:hover { border-color: var(--primary); }
+.appliance-card.active {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+.appliance-header {
+  display: flex; align-items: center; gap: 12px;
+}
+.appliance-header .icon { font-size: 1.5rem; }
+.appliance-header .info { flex: 1; }
+.appliance-header .info h3 { font-size: 0.95rem; }
+.appliance-header .info p { font-size: 0.75rem; color: var(--text-muted); }
+.appliance-header .badge {
+  font-size: 0.75rem; font-weight: 600;
+  padding: 2px 8px; border-radius: 99px;
+}
+.badge-positive { background: var(--primary-light); color: var(--primary-dark); }
+.badge-negative { background: #fee2e2; color: var(--danger); }
+
+.appliance-checkbox {
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 2px solid var(--border); background: white;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all 0.2s;
+}
+.appliance-card.active .appliance-checkbox {
+  background: var(--primary); border-color: var(--primary);
+}
+.appliance-card.active .appliance-checkbox::after {
+  content: '✓'; color: white; font-size: 14px; font-weight: bold;
+}
+
+.appliance-details {
+  margin-top: 16px; display: none;
+}
+.appliance-card.active .appliance-details { display: block; }
+
+.field { margin-bottom: 12px; }
+.field label {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;
+}
+.field .input-wrap {
+  display: flex; align-items: center; gap: 8px;
+}
+.field input[type=range] {
+  flex: 1; accent-color: var(--primary);
+}
+.field .num-input {
+  width: 90px; text-align: right; padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.9rem; outline: none;
+}
+.field .num-input:focus { border-color: var(--primary); }
+.field .unit { font-size: 0.8rem; color: var(--text-muted); min-width: 30px; }
+
+/* Hourly rate section */
+.hourly-section h3 { font-size: 0.9rem; margin-bottom: 12px; }
+.hourly-section .big-input {
+  width: 100%; padding: 10px 12px; font-size: 1.1rem;
+  border: 1px solid var(--border); border-radius: 8px; outline: none;
+  margin-bottom: 8px;
+}
+.hourly-section .big-input:focus { border-color: var(--primary); }
+.hourly-section input[type=range] { width: 100%; accent-color: var(--primary); }
+.hourly-section .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+/* Investment section */
+.invest-section h3 { font-size: 0.9rem; margin-bottom: 12px; }
+
+/* Right panel */
+.results { display: flex; flex-direction: column; gap: 20px; }
+
+.summary-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.summary-item {
+  background: var(--bg); border-radius: 10px; padding: 16px; text-align: center;
+}
+.summary-item .label { font-size: 0.75rem; color: var(--text-muted); }
+.summary-item .value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
+.summary-item .sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+.value-positive { color: var(--primary-dark); }
+.value-negative { color: var(--danger); }
+
+.payback-bar {
+  background: var(--bg); border-radius: 10px; padding: 16px;
+}
+.payback-bar h3 { font-size: 0.9rem; margin-bottom: 8px; }
+.payback-bar .bar-track {
+  height: 32px; background: #e2e8f0; border-radius: 8px;
+  position: relative; overflow: hidden;
+}
+.payback-bar .bar-fill {
+  height: 100%; border-radius: 8px;
+  display: flex; align-items: center; padding: 0 12px;
+  font-size: 0.8rem; font-weight: 600; color: white;
+  transition: width 0.5s ease;
+}
+.bar-fill.fast { background: var(--primary); }
+.bar-fill.medium { background: var(--warning); }
+.bar-fill.slow { background: var(--danger); }
+.payback-bar .bar-labels {
+  display: flex; justify-content: space-between;
+  font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;
+}
+.payback-rating {
+  display: inline-block; padding: 4px 12px; border-radius: 99px;
+  font-size: 0.8rem; font-weight: 600; margin-top: 8px;
+}
+.rating-excellent { background: var(--primary-light); color: var(--primary-dark); }
+.rating-good { background: #fef3c7; color: #92400e; }
+.rating-caution { background: #ffedd5; color: #9a3412; }
+.rating-poor { background: #fee2e2; color: var(--danger); }
+
+.chart-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 16px;
+}
+@media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
+
+.chart-card { padding: 16px; }
+.chart-card h3 { font-size: 0.9rem; margin-bottom: 12px; }
+.chart-card canvas { width: 100% !important; }
+
+/* Breakdown table */
+.breakdown-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+.breakdown-table th {
+  text-align: left; padding: 8px 12px;
+  border-bottom: 2px solid var(--border); color: var(--text-muted);
+  font-weight: 600; font-size: 0.75rem;
+}
+.breakdown-table td {
+  padding: 8px 12px; border-bottom: 1px solid var(--border);
+}
+.breakdown-table .section-header td {
+  padding: 12px 12px 6px; font-weight: 700; font-size: 0.85rem;
+  border-bottom: none; color: var(--text);
+}
+.breakdown-table .amount { text-align: right; font-variant-numeric: tabular-nums; }
+.breakdown-table .positive { color: var(--primary-dark); font-weight: 600; }
+.breakdown-table .negative { color: var(--danger); }
+.breakdown-table .total-row td {
+  font-weight: 700; border-top: 2px solid var(--text);
+  padding-top: 12px;
+}
+.breakdown-table .note { color: var(--text-muted); font-size: 0.75rem; }
+
+/* Add appliance button */
+.delete-btn {
+  width: 28px; height: 28px; border-radius: 50%;
+  border: none; background: transparent; color: var(--text-muted);
+  font-size: 0.8rem; cursor: pointer; display: flex;
+  align-items: center; justify-content: center; flex-shrink: 0;
+  transition: all 0.2s;
+}
+.delete-btn:hover { background: #fee2e2; color: var(--danger); }
+
+.name-input {
+  width: 100%; padding: 6px 8px;
+  border: 1px solid var(--border); border-radius: 8px;
+  font-size: 0.9rem; outline: none;
+}
+.name-input:focus { border-color: var(--primary); }
+
+.add-btn {
+  width: 100%; padding: 12px; border: 2px dashed var(--border);
+  border-radius: var(--radius); background: transparent;
+  color: var(--text-muted); font-size: 0.9rem; cursor: pointer;
+  transition: all 0.2s;
+}
+.add-btn:hover { border-color: var(--primary); color: var(--primary); }
+
+.empty-state {
+  text-align: center; padding: 60px 20px; color: var(--text-muted);
+}
+.empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
+.empty-state h3 { margin-bottom: 8px; }
+
+.export-btn {
+  padding: 6px 14px; border-radius: 8px; font-size: 0.8rem;
+  border: 1px solid var(--border); background: var(--card);
+  cursor: pointer; transition: all 0.2s; color: var(--text);
+}
+.export-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+
+@media print {
+  .sidebar, .app-header button, .export-btn, .delete-btn, .add-btn,
+  .tab-nav, .apply-btn, .share-btn, .print-hide { display: none !important; }
+  .container { grid-template-columns: 1fr !important; }
+  .card { break-inside: avoid; }
+  .tab-panel { display: none !important; }
+  .tab-panel.active, .tab-panel.print-show { display: block !important; }
+  .tab-panel.print-show { page-break-before: always; }
+  .wage-container { grid-template-columns: 1fr !important; }
+}
+
+/* ── タブ ── */
+.tab-nav {
+  display: flex; gap: 4px; padding: 0 24px;
+  background: var(--card); border-bottom: 1px solid var(--border);
+  max-width: 1200px; margin: 0 auto;
+}
+.tab-btn {
+  padding: 12px 20px; font-size: 0.9rem; font-weight: 600;
+  border: none; background: transparent; cursor: pointer;
+  color: var(--text-muted); border-bottom: 3px solid transparent;
+  transition: all 0.2s; margin-bottom: -1px;
+}
+.tab-btn:hover { color: var(--text); }
+.tab-btn.active { color: var(--primary-dark); border-bottom-color: var(--primary); }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ── 時給計算タブ ── */
+.wage-container {
+  max-width: 900px; margin: 0 auto; padding: 24px 16px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
+}
+@media (max-width: 700px) { .wage-container { grid-template-columns: 1fr; } }
+
+.wage-result-grid {
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 12px; margin-bottom: 16px;
+}
+.wage-result-item {
+  background: var(--bg); border-radius: 10px; padding: 16px; text-align: center;
+}
+.wage-result-item .label { font-size: 0.72rem; color: var(--text-muted); }
+.wage-result-item .value { font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
+.wage-result-item .sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+.wage-result-item.highlight { background: var(--primary-light); }
+.wage-result-item.highlight .value { color: var(--primary-dark); }
+
+.apply-btn {
+  width: 100%; padding: 12px; border-radius: 10px; font-size: 0.9rem; font-weight: 600;
+  border: none; background: var(--primary); color: white; cursor: pointer; transition: all 0.2s;
+  margin-top: 8px;
+}
+.apply-btn:hover { background: var(--primary-dark); }
+
+.wage-section-title {
+  font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+}
+
+.wage-bar-wrap { margin-top: 16px; }
+.wage-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.wage-bar-track { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
+.wage-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
+
+.take-mode-btn {
+  padding: 2px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;
+  border: 1px solid var(--border); background: var(--card); cursor: pointer;
+  color: var(--text-muted); transition: all 0.15s;
+}
+.take-mode-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
+
+.take-auto-info {
+  margin-top: 6px; padding: 8px 12px; border-radius: 8px;
+  background: var(--primary-light); font-size: 0.82rem; color: var(--primary-dark);
+}
+
+.wage-result-item {
+  cursor: pointer; position: relative;
+  border: 2px solid transparent; transition: border-color 0.15s;
+}
+.wage-result-item:hover { border-color: var(--border); }
+.wage-result-item.selected { border-color: var(--primary); }
+.wage-result-item.selected::after {
+  content: '✓'; position: absolute; top: 6px; right: 8px;
+  font-size: 0.75rem; color: var(--primary-dark); font-weight: 700;
+}
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <h1>⏳ Buy-Back Time Simulator</h1>
+  <p>家電の時間節約価値・投資リターンを可視化</p>
+  <button class="share-btn" onclick="copyShareLink()" id="shareBtn">🔗 この設定を共有</button>
+</header>
+
+<div style="background:var(--card);border-bottom:1px solid var(--border)">
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="switchTab('roi')">🏠 家電 ROI</button>
+    <button class="tab-btn" onclick="switchTab('wage')">⏱ 時給計算</button>
+  </div>
+</div>
+
+<!-- Tab: 家電 ROI -->
+<div class="tab-panel active" id="tab-roi">
+<div class="container">
+  <div class="sidebar">
+    <div id="appliance-list"></div>
+    <button class="add-btn" onclick="addCustomAppliance()">＋ カスタム家電を追加</button>
+
+    <div class="card hourly-section">
+      <h3>⏱ あなたの時間価値</h3>
+      <div class="field">
+        <label>時給換算（円/時間）</label>
+        <input type="number" class="big-input" id="hourlyRate" value="1500" min="100" max="50000" oninput="syncSlider('hourlyRateSlider', this.value); recalc()">
+        <input type="range" id="hourlyRateSlider" min="100" max="10000" step="100" value="1500" oninput="document.getElementById('hourlyRate').value=this.value; recalc()">
+        <p class="hint">実際の時給・副業収入・主観的価値で設定</p>
+      </div>
+    </div>
+
+    <div class="card invest-section">
+      <h3>📈 投資比較設定</h3>
+      <div class="field">
+        <label>想定年利回り <span id="investRateDisplay">5%</span></label>
+        <div class="input-wrap">
+          <input type="range" id="investRate" min="1" max="15" step="0.5" value="5" oninput="document.getElementById('investRateDisplay').textContent=this.value+'%'; recalc()">
+        </div>
+        <p class="hint" style="margin-top:4px">S&P500平均: 約7% / オルカン: 約5%</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="results" id="results">
+    <div class="empty-state">
+      <div class="icon">👈</div>
+      <h3>家電を選択してください</h3>
+      <p>左のリストから家電をクリックして<br>パラメータを設定すると結果が表示されます</p>
+    </div>
+  </div>
+</div>
+</div><!-- /tab-roi -->
+
+<!-- Tab: 時給計算 -->
+<div class="tab-panel" id="tab-wage">
+<div class="wage-container">
+
+  <!-- 左カラム: 入力 -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <div class="card">
+      <div class="wage-section-title">💰 収入</div>
+      <div class="field">
+        <label>年収（額面）<span id="wAnnualDisplay" style="float:right;font-weight:600"></span></label>
+        <div class="input-wrap">
+          <input type="range" id="wAnnual" min="1000000" max="20000000" step="100000" value="5000000" oninput="document.getElementById('wAnnualNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wAnnualNum" value="5000000" oninput="document.getElementById('wAnnual').value=this.value;wCalc()">
+          <span class="unit">円</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>手取り率
+          <span style="display:flex;gap:4px;align-items:center">
+            <button id="wTakeAutoBtn" class="take-mode-btn active" onclick="setTakeMode('auto')">自動</button>
+            <button id="wTakeManualBtn" class="take-mode-btn" onclick="setTakeMode('manual')">手動</button>
+          </span>
+        </label>
+        <div id="wTakeAutoInfo" class="take-auto-info"></div>
+        <div id="wTakeManualArea" style="display:none">
+          <div class="input-wrap" style="margin-top:6px">
+            <input type="range" id="wTakeRate" min="50" max="92" step="1" value="78" oninput="document.getElementById('wTakeRateNum').value=this.value;wCalc()">
+            <input type="number" class="num-input" id="wTakeRateNum" value="78" min="50" max="92" oninput="document.getElementById('wTakeRate').value=this.value;wCalc()">
+            <span class="unit">%</span>
+          </div>
+        </div>
+      </div>
+      <div class="field" style="margin-top:8px">
+        <label>副業・その他収入（月）</label>
+        <div class="input-wrap">
+          <input type="range" id="wSide" min="0" max="500000" step="5000" value="0" oninput="document.getElementById('wSideNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wSideNum" value="0" oninput="document.getElementById('wSide').value=this.value;wCalc()">
+          <span class="unit">円</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="wage-section-title">🗓 勤務条件</div>
+      <div class="field">
+        <label>月間勤務日数</label>
+        <div class="input-wrap">
+          <input type="range" id="wWorkDays" min="10" max="25" step="1" value="20" oninput="document.getElementById('wWorkDaysNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wWorkDaysNum" value="20" oninput="document.getElementById('wWorkDays').value=this.value;wCalc()">
+          <span class="unit">日</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>所定労働時間（1日）</label>
+        <div class="input-wrap">
+          <input type="range" id="wHoursDay" min="4" max="12" step="0.5" value="8" oninput="document.getElementById('wHoursDayNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wHoursDayNum" value="8" step="0.5" oninput="document.getElementById('wHoursDay').value=this.value;wCalc()">
+          <span class="unit">時間</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>月間残業時間</label>
+        <div class="input-wrap">
+          <input type="range" id="wOvertime" min="0" max="80" step="1" value="10" oninput="document.getElementById('wOvertimeNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wOvertimeNum" value="10" oninput="document.getElementById('wOvertime').value=this.value;wCalc()">
+          <span class="unit">時間</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="wage-section-title">🚃 通勤・準備</div>
+      <div class="field">
+        <label>通勤時間（片道）</label>
+        <div class="input-wrap">
+          <input type="range" id="wCommute" min="0" max="120" step="5" value="30" oninput="document.getElementById('wCommuteNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wCommuteNum" value="30" oninput="document.getElementById('wCommute').value=this.value;wCalc()">
+          <span class="unit">分</span>
+        </div>
+      </div>
+      <div class="field">
+        <label>出勤準備時間</label>
+        <div class="input-wrap">
+          <input type="range" id="wPrepare" min="0" max="90" step="5" value="30" oninput="document.getElementById('wPrepareNum').value=this.value;wCalc()">
+          <input type="number" class="num-input" id="wPrepareNum" value="30" oninput="document.getElementById('wPrepare').value=this.value;wCalc()">
+          <span class="unit">分</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右カラム: 結果 -->
+  <div style="display:flex;flex-direction:column;gap:16px">
+
+    <div class="card">
+      <div class="wage-section-title">📊 計算結果 <span style="font-size:0.7rem;color:var(--text-muted);text-transform:none;font-weight:400">▼ 使用する時給を選択</span></div>
+      <div class="wage-result-grid" id="wageResults"></div>
+      <button class="apply-btn" onclick="applyWageToROI()">→ 選択した時給をROI計算に適用する</button>
+    </div>
+
+    <div class="card">
+      <div class="wage-section-title">⏱ 月間時間の内訳</div>
+      <div id="wageBreakdown"></div>
+    </div>
+
+    <div class="card">
+      <div class="wage-section-title">💡 時給のレベル感</div>
+      <div id="wageBenchmark"></div>
+    </div>
+
+  </div>
+</div>
+</div><!-- /tab-wage -->
+
+<script>
+const PRESETS = [
+  { id: 'drum_washer', icon: '👕', name: 'ドラム式洗濯機', desc: '乾燥まで全自動', price: 150000, install: 5000, monthlyCost: 1000, timePerUse: 60, usesPerMonth: 20, lifeYears: 7 },
+  { id: 'robot_vacuum', icon: '🤖', name: 'ロボット掃除機', desc: '自動で毎日掃除', price: 60000, install: 0, monthlyCost: 200, timePerUse: 30, usesPerMonth: 25, lifeYears: 5 },
+  { id: 'dishwasher', icon: '🍽', name: '食洗機', desc: '手洗い不要', price: 80000, install: 15000, monthlyCost: 500, timePerUse: 20, usesPerMonth: 30, lifeYears: 10 },
+  { id: 'dryer', icon: '👔', name: '衣類乾燥機', desc: '外干し不要', price: 70000, install: 5000, monthlyCost: 800, timePerUse: 15, usesPerMonth: 20, lifeYears: 8 },
+];
+
+const STORAGE_KEY = 'buyback_sim_v1';
+
+function saveState() {
+  const state = {
+    appliances,
+    customCount,
+    hourlyRate: document.getElementById('hourlyRate')?.value,
+    investRate: document.getElementById('investRate')?.value,
+  };
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function loadState() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const state = JSON.parse(raw);
+    if (state.appliances) appliances = state.appliances;
+    if (state.customCount) customCount = state.customCount;
+    if (state.hourlyRate) {
+      document.getElementById('hourlyRate').value = state.hourlyRate;
+      document.getElementById('hourlyRateSlider').value = state.hourlyRate;
+    }
+    if (state.investRate) {
+      document.getElementById('investRate').value = state.investRate;
+      document.getElementById('investRateDisplay').textContent = state.investRate + '%';
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+let appliances = PRESETS.map(p => ({ ...p, active: false }));
+let customCount = 0;
+let cumulativeChart = null;
+
+function render() {
+  const list = document.getElementById('appliance-list');
+  saveState();
+  list.innerHTML = appliances.map((a, i) => {
+    const monthlyProfit = calcMonthlyProfit(a);
+    const badgeClass = monthlyProfit >= 0 ? 'badge-positive' : 'badge-negative';
+    const badgeText = a.active ? `月${monthlyProfit >= 0 ? '+' : ''}${fmt(monthlyProfit)}円の価値` : '未選択';
+    return `
+    <div class="card appliance-card ${a.active ? 'active' : ''}" onclick="toggle(${i})">
+      <div class="appliance-header">
+        <div class="appliance-checkbox"></div>
+        <div class="icon">${a.icon}</div>
+        <div class="info">
+          <h3>${a.name}</h3>
+          <p>${a.desc}</p>
+        </div>
+        <span class="badge ${a.active ? badgeClass : ''}">${badgeText}</span>
+        <button class="delete-btn" onclick="event.stopPropagation(); removeAppliance(${i})" title="削除">✕</button>
+      </div>
+      <div class="appliance-details" onclick="event.stopPropagation()">
+        <div class="field">
+          <label>家電名</label>
+          <div class="input-wrap">
+            <input type="text" class="name-input" value="${a.name}" oninput="updateName(${i}, this.value)">
+          </div>
+        </div>
+        ${fieldHTML(i, '本体価格', 'price', a.price, 0, 500000, 1000, '円')}
+        ${fieldHTML(i, '設置・工事費', 'install', a.install, 0, 100000, 1000, '円')}
+        ${fieldHTML(i, '月間電気代増加', 'monthlyCost', a.monthlyCost, 0, 5000, 100, '円/月')}
+        ${fieldHTML(i, '1回の節約時間', 'timePerUse', a.timePerUse, 1, 120, 1, '分')}
+        ${fieldHTML(i, '月の使用回数', 'usesPerMonth', a.usesPerMonth, 1, 60, 1, '回/月')}
+        ${fieldHTML(i, '耐用年数', 'lifeYears', a.lifeYears, 1, 20, 1, '年')}
+      </div>
+    </div>`;
+  }).join('');
+  recalc();
+}
+
+function fieldHTML(idx, label, key, val, min, max, step, unit) {
+  return `<div class="field">
+    <label>${label}</label>
+    <div class="input-wrap">
+      <input type="range" min="${min}" max="${max}" step="${step}" value="${val}"
+        oninput="updateVal(${idx},'${key}',this.value); this.nextElementSibling.value=this.value">
+      <input type="number" class="num-input" value="${val}" min="${min}" max="${max}"
+        oninput="updateVal(${idx},'${key}',this.value); this.previousElementSibling.value=this.value">
+      <span class="unit">${unit}</span>
+    </div>
+  </div>`;
+}
+
+function toggle(i) {
+  appliances[i].active = !appliances[i].active;
+  render();
+}
+
+function updateVal(i, key, val) {
+  appliances[i][key] = Number(val);
+  recalc();
+  // Update badge
+  const cards = document.querySelectorAll('.appliance-card');
+  if (cards[i] && appliances[i].active) {
+    const badge = cards[i].querySelector('.badge');
+    const mp = calcMonthlyProfit(appliances[i]);
+    badge.textContent = `月${mp >= 0 ? '+' : ''}${fmt(mp)}円の価値`;
+    badge.className = `badge ${mp >= 0 ? 'badge-positive' : 'badge-negative'}`;
+  }
+}
+
+function updateName(i, val) {
+  appliances[i].name = val;
+  // Update badge and header without full re-render to keep focus
+  const cards = document.querySelectorAll('.appliance-card');
+  if (cards[i]) {
+    cards[i].querySelector('.info h3').textContent = val;
+  }
+  recalc();
+}
+
+function removeAppliance(i) {
+  appliances.splice(i, 1);
+  render();
+}
+
+function syncSlider(id, val) { document.getElementById(id).value = val; }
+
+function getHourlyRate() { return Number(document.getElementById('hourlyRate').value) || 1500; }
+function getInvestRate() { return Number(document.getElementById('investRate').value) || 5; }
+
+function calcMonthlyProfit(a) {
+  const rate = getHourlyRate();
+  const monthlyHours = (a.timePerUse * a.usesPerMonth) / 60;
+  const monthlyValue = monthlyHours * rate;
+  return Math.round(monthlyValue - a.monthlyCost);
+}
+
+function fmt(n) { return n.toLocaleString('ja-JP'); }
+
+function addCustomAppliance() {
+  customCount++;
+  appliances.push({
+    id: 'custom_' + customCount, icon: '⚙️',
+    name: 'カスタム家電 ' + customCount, desc: '自分で設定',
+    price: 50000, install: 0, monthlyCost: 500,
+    timePerUse: 30, usesPerMonth: 15, lifeYears: 5, active: true
+  });
+  render();
+}
+
+function recalc() {
+  const active = appliances.filter(a => a.active);
+  const panel = document.getElementById('results');
+
+  if (active.length === 0) {
+    panel.innerHTML = `<div class="empty-state">
+      <div class="icon">👈</div>
+      <h3>家電を選択してください</h3>
+      <p>左のリストから家電をクリックして<br>パラメータを設定すると結果が表示されます</p>
+    </div>`;
+    return;
+  }
+
+  const rate = getHourlyRate();
+  const investRateAnnual = getInvestRate() / 100;
+
+  let totalInitial = 0, totalMonthlyProfit = 0, totalMonthlyHours = 0, totalMonthlyCost = 0;
+  const items = active.map(a => {
+    const initial = a.price + a.install;
+    const monthlyHours = (a.timePerUse * a.usesPerMonth) / 60;
+    const monthlyValue = monthlyHours * rate;
+    const monthlyProfit = monthlyValue - a.monthlyCost;
+    const paybackMonths = monthlyProfit > 0 ? Math.ceil(initial / monthlyProfit) : Infinity;
+    totalInitial += initial;
+    totalMonthlyProfit += monthlyProfit;
+    totalMonthlyHours += monthlyHours;
+    totalMonthlyCost += a.monthlyCost;
+    return { ...a, initial, monthlyHours, monthlyValue, monthlyProfit, paybackMonths };
+  });
+
+  const totalPayback = totalMonthlyProfit > 0 ? Math.ceil(totalInitial / totalMonthlyProfit) : Infinity;
+  const maxLifeYears = Math.max(...items.map(it => it.lifeYears));
+  const maxLifeMonths = maxLifeYears * 12;
+  const lifetimeValue = totalMonthlyProfit * maxLifeMonths;
+  const annualROI = totalInitial > 0 ? ((totalMonthlyProfit * 12) / totalInitial * 100) : 0;
+
+  // Investment comparison: if you invested totalInitial instead
+  const investMonthlyRate = Math.pow(1 + investRateAnnual, 1/12) - 1;
+
+  // Build payback bar
+  const maxMonths = 36;
+  const barClass = totalPayback <= 12 ? 'fast' : totalPayback <= 24 ? 'medium' : 'slow';
+  const ratingClass = totalPayback <= 12 ? 'rating-excellent' : totalPayback <= 24 ? 'rating-good' : totalPayback <= 36 ? 'rating-caution' : 'rating-poor';
+  const ratingText = totalPayback <= 6 ? '🏆 超優良投資' : totalPayback <= 12 ? '👍 良い投資' : totalPayback <= 18 ? '🤔 まずまず' : totalPayback <= 24 ? '⚠️ 要検討' : totalPayback <= 36 ? '😰 再検討を推奨' : '❌ 購入困難';
+  const paybackLabel = totalPayback === Infinity ? '回収不可' : totalPayback + 'ヶ月で回収';
+
+  // Charts data — 横軸は最大耐用年数に合わせる
+  const chartMonths = Array.from({length: maxLifeMonths + 1}, (_, i) => i);
+  const chartLabels = chartMonths.map(m => {
+    if (m === 0) return '購入';
+    if (m % 12 === 0) return (m / 12) + '年';
+    return '';
+  });
+  const cumulativeValues = chartMonths.map(m => totalMonthlyProfit * m);
+  const initialLine = chartMonths.map(() => totalInitial);
+  // 節約額を毎月積立投資した場合（年金終価係数）
+  const investLine = chartMonths.map(m => {
+    if (m === 0 || investMonthlyRate === 0) return 0;
+    return totalMonthlyProfit * ((Math.pow(1 + investMonthlyRate, m) - 1) / investMonthlyRate);
+  });
+
+
+  // Table rows
+  let tableHTML = `<tr><th>家電 / 項目</th><th>金額</th><th>備考</th></tr>`;
+  items.forEach(it => {
+    tableHTML += `<tr class="section-header"><td colspan="3">${it.icon} ${it.name}</td></tr>`;
+    tableHTML += `<tr><td style="padding-left:24px">本体価格</td><td class="amount">${fmt(it.price)} 円</td><td class="note">初期費用</td></tr>`;
+    if (it.install > 0) tableHTML += `<tr><td style="padding-left:24px">設置・工事費</td><td class="amount">${fmt(it.install)} 円</td><td class="note">初期費用</td></tr>`;
+    tableHTML += `<tr><td style="padding-left:24px">月間電気代増加</td><td class="amount negative">${fmt(it.monthlyCost)} 円/月</td><td class="note">ランニングコスト</td></tr>`;
+    tableHTML += `<tr><td style="padding-left:24px">月間時給換算額</td><td class="amount positive">+${fmt(Math.round(it.monthlyValue))} 円/月</td><td class="note">${it.monthlyHours.toFixed(1)}h × ${fmt(rate)}円/h</td></tr>`;
+    tableHTML += `<tr><td style="padding-left:24px">月間節約価値</td><td class="amount ${it.monthlyProfit >= 0 ? 'positive' : 'negative'}">${it.monthlyProfit >= 0 ? '+' : ''}${fmt(Math.round(it.monthlyProfit))} 円/月</td><td class="note">時給換算 − 電気代</td></tr>`;
+    tableHTML += `<tr><td style="padding-left:24px">耐用年数</td><td class="amount">${it.lifeYears} 年</td><td class="note"></td></tr>`;
+  });
+  tableHTML += `<tr class="total-row"><td>合計</td><td class="amount">${fmt(totalInitial)} 円 / 月${fmt(Math.round(totalMonthlyProfit))}円</td><td class="note">初期費用 / 月間節約価値</td></tr>`;
+
+  // 節約額を積立投資した場合の耐用期間終了時の総額
+  const lifetimeInvestTotal = investLine[investLine.length - 1];
+
+  panel.innerHTML = `
+    <div class="card">
+      <h3 style="margin-bottom:4px">⏱ 投資回収期間</h3>
+      <div style="font-size:2rem;font-weight:800;margin:4px 0">${totalPayback === Infinity ? '回収不可' : totalPayback + 'ヶ月'}</div>
+      <p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:12px">
+        ${totalPayback === Infinity ? '月間節約価値がマイナスです' : '購入から' + totalPayback + 'ヶ月で元が取れます'}
+      </p>
+      <span class="payback-rating ${ratingClass}">${ratingText}</span>
+    </div>
+
+    <div class="summary-grid">
+      <div class="summary-item">
+        <div class="label">合計初期費用</div>
+        <div class="value">${fmt(totalInitial)}円</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">月間節約時間</div>
+        <div class="value value-positive">${totalMonthlyHours.toFixed(1)} 時間/月</div>
+        <div class="sub">年間 ${(totalMonthlyHours * 12).toFixed(0)} 時間</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">月間節約価値</div>
+        <div class="value ${totalMonthlyProfit >= 0 ? 'value-positive' : 'value-negative'}">
+          ${totalMonthlyProfit >= 0 ? '+' : ''}${fmt(Math.round(totalMonthlyProfit))}円/月
+        </div>
+      </div>
+      <div class="summary-item">
+        <div class="label">耐用期間の累計価値</div>
+        <div class="value">${fmt(Math.round(lifetimeValue))}円</div>
+        <div class="sub">${maxLifeYears}年間</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">年間ROI</div>
+        <div class="value ${annualROI >= 0 ? 'value-positive' : 'value-negative'}">${annualROI.toFixed(0)}%</div>
+        <div class="sub">投資利回り換算</div>
+      </div>
+      <div class="summary-item">
+        <div class="label">節約額を積立投資した場合</div>
+        <div class="value">${fmt(Math.round(lifetimeInvestTotal))}円</div>
+        <div class="sub">${maxLifeYears}年間 / 年利${getInvestRate()}%複利</div>
+      </div>
+    </div>
+
+    <div class="card payback-bar">
+      <h3>回収タイムライン</h3>
+      <div class="bar-track">
+        <div class="bar-fill ${barClass}" style="width:${totalPayback === Infinity ? 100 : Math.min(totalPayback / maxMonths * 100, 100)}%">
+          ${paybackLabel}
+        </div>
+      </div>
+      <div class="bar-labels">
+        <span>購入</span><span>6ヶ月</span><span>12ヶ月</span><span>18ヶ月</span><span>24ヶ月</span><span>36ヶ月</span>
+      </div>
+    </div>
+
+    <div class="card chart-card">
+      <h3>累計価値 vs 初期費用 vs 投資リターン（耐用年数: ${maxLifeYears}年）</h3>
+      <canvas id="cumulativeChart"></canvas>
+    </div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <h3>家電別 コスト・価値の内訳</h3>
+        <div style="display:flex;gap:8px">
+          <button class="export-btn" onclick="exportCSV()">📥 CSV出力</button>
+          <button class="export-btn" onclick="exportPDF()">🖨 PDF出力</button>
+        </div>
+      </div>
+      <table class="breakdown-table">${tableHTML}</table>
+    </div>
+  `;
+
+  saveState();
+  // Render charts
+  renderCharts(chartLabels, cumulativeValues, initialLine, investLine);
+}
+
+function renderCharts(labels, cumValues, initLine, investLine) {
+  if (cumulativeChart) cumulativeChart.destroy();
+
+  const ctx1 = document.getElementById('cumulativeChart').getContext('2d');
+  cumulativeChart = new Chart(ctx1, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: '初期費用', data: initLine, borderColor: '#ef4444', borderDash: [5,5], borderWidth: 2, pointRadius: 0, fill: false },
+        { label: '累計節約価値', data: cumValues, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(16,185,129,0.1)' },
+        { label: '節約額を積立投資した場合', data: investLine, borderColor: '#3b82f6', borderDash: [4,4], borderWidth: 2, pointRadius: 0, fill: false }
+      ]
+    },
+    options: {
+      responsive: true,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: { legend: { position: 'top' } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: { ticks: { callback: v => (v/10000).toFixed(0) + '万' } }
+      }
+    }
+  });
+}
+
+// 共有リンク
+function copyShareLink() {
+  const state = {
+    appliances,
+    customCount,
+    hourlyRate: document.getElementById('hourlyRate').value,
+    investRate: document.getElementById('investRate').value,
+  };
+  const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+  const url = location.origin + location.pathname + '#s=' + encoded;
+  navigator.clipboard.writeText(url).then(() => {
+    const btn = document.getElementById('shareBtn');
+    btn.textContent = '✅ URLをコピーしました';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = '🔗 この設定を共有'; btn.classList.remove('copied'); }, 2500);
+  });
+}
+
+function loadFromHash() {
+  try {
+    const hash = location.hash;
+    if (!hash.startsWith('#s=')) return false;
+    const state = JSON.parse(decodeURIComponent(atob(hash.slice(3))));
+    if (state.appliances) appliances = state.appliances;
+    if (state.customCount) customCount = state.customCount;
+    if (state.hourlyRate) {
+      document.getElementById('hourlyRate').value = state.hourlyRate;
+      document.getElementById('hourlyRateSlider').value = state.hourlyRate;
+    }
+    if (state.investRate) {
+      document.getElementById('investRate').value = state.investRate;
+      document.getElementById('investRateDisplay').textContent = state.investRate + '%';
+    }
+    return true;
+  } catch(e) { return false; }
+}
+
+// ── 共通: 時給計算データ取得 ──
+function getWageData() {
+  const annual    = wVal('wAnnualNum');
+  const sidePer   = wVal('wSideNum');
+  const workDays  = wVal('wWorkDays');
+  const hoursDay  = wVal('wHoursDay');
+  const overtime  = wVal('wOvertime');
+  const commute   = wVal('wCommuteNum');
+  const prepare   = wVal('wPrepareNum');
+  const takeRatePct = wTakeMode === 'auto' ? autoTakeRate(annual) : wVal('wTakeRateNum');
+  const takeHome  = annual * takeRatePct / 100;
+  const monthlyBase = takeHome / 12 + sidePer;
+  const scheduledH  = workDays * hoursDay;
+  const commuteH    = workDays * commute * 2 / 60;
+  const prepareH    = workDays * prepare / 60;
+  const totalWorkH  = scheduledH + overtime + commuteH + prepareH;
+  return {
+    annual, takeRatePct, takeHome, sidePer, workDays, hoursDay, overtime, commute, prepare,
+    monthlyBase, scheduledH, commuteH, prepareH, totalWorkH,
+    wageScheduled: Math.round(monthlyBase / scheduledH),
+    wageOT:        Math.round(monthlyBase / Math.max(scheduledH + overtime, 1)),
+    wageReal:      Math.round(monthlyBase / Math.max(totalWorkH, 1)),
+    wageDaily:     Math.round(monthlyBase / Math.max(totalWorkH, 1) * 8),
+    selectedWage,
+    selectedValue: wageValues[selectedWage] || 0,
+  };
+}
+
+// CSV出力
+function exportCSV() {
+  const active = appliances.filter(a => a.active);
+  const rate = getHourlyRate();
+  const w = getWageData();
+  const rows = [];
+
+  // ── セクション1: 時給計算 ──
+  rows.push(['■ 時給計算']);
+  rows.push(['項目', '値', '単位']);
+  rows.push(['年収（額面）', w.annual, '円']);
+  rows.push(['手取り率', w.takeRatePct, '%']);
+  rows.push(['手取り年収', Math.round(w.takeHome), '円']);
+  rows.push(['副業・その他収入', w.sidePer, '円/月']);
+  rows.push(['月間勤務日数', w.workDays, '日']);
+  rows.push(['1日所定労働時間', w.hoursDay, '時間']);
+  rows.push(['月間残業時間', w.overtime, '時間']);
+  rows.push(['通勤時間（片道）', w.commute, '分']);
+  rows.push(['出勤準備時間', w.prepare, '分']);
+  rows.push(['月間拘束時間合計', w.totalWorkH.toFixed(1), '時間']);
+  rows.push(['所定労働ベース時給', w.wageScheduled, '円/h']);
+  rows.push(['残業込み時給', w.wageOT, '円/h']);
+  rows.push(['実質時給（拘束ベース）', w.wageReal, '円/h']);
+  rows.push(['8時間換算日給', w.wageDaily, '円']);
+  rows.push(['ROI計算に使用する時給', w.selectedValue, '円']);
+  rows.push([]);
+
+  // ── セクション2: 家電ROI ──
+  rows.push(['■ 家電ROI']);
+  if (active.length === 0) {
+    rows.push(['（家電が選択されていません）']);
+  } else {
+    rows.push(['家電名', '本体価格(円)', '設置費(円)', '月間電気代増加(円)', '1回節約時間(分)', '月使用回数', '耐用年数(年)', '月間時給換算額(円)', '月間節約価値(円)', '初期費用合計(円)', '回収期間(ヶ月)']);
+    active.forEach(a => {
+      const initial = a.price + a.install;
+      const monthlyHours = (a.timePerUse * a.usesPerMonth) / 60;
+      const monthlyValue = monthlyHours * rate;
+      const monthlyProfit = monthlyValue - a.monthlyCost;
+      const payback = monthlyProfit > 0 ? Math.ceil(initial / monthlyProfit) : '回収不可';
+      rows.push([a.name, a.price, a.install, a.monthlyCost, a.timePerUse, a.usesPerMonth, a.lifeYears, Math.round(monthlyValue), Math.round(monthlyProfit), initial, payback]);
+    });
+  }
+  rows.push([]);
+
+  // ── セクション3: 手取り率参考表 ──
+  rows.push(['■ 手取り率参考表（国税庁概算ベース）']);
+  rows.push(['年収の目安', '推定手取り率', '手取り額の目安（年）', '備考']);
+  [
+    ['～100万円',   91, 1000000,  '学生・パート'],
+    ['～150万円',   88, 1500000,  ''],
+    ['～200万円',   86, 2000000,  ''],
+    ['～250万円',   84, 2500000,  ''],
+    ['～300万円',   82, 3000000,  '新卒〜若手'],
+    ['～400万円',   80, 4000000,  ''],
+    ['～500万円',   78, 5000000,  '一般社員平均'],
+    ['～600万円',   76, 6000000,  ''],
+    ['～700万円',   74, 7000000,  ''],
+    ['～800万円',   72, 8000000,  '管理職・専門職'],
+    ['～1,000万円', 70, 10000000, ''],
+    ['～1,200万円', 67, 12000000, ''],
+    ['～1,500万円', 64, 15000000, '外資・役員'],
+    ['～2,000万円', 61, 20000000, ''],
+    ['2,000万円〜', 57, null,     '高額所得者'],
+  ].forEach(([label, pct, base, note]) => {
+    rows.push([label, pct + '%', base ? Math.round(base * pct / 100) + '円' : '—', note]);
+  });
+
+  const csv = rows.map(r => r.join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'buyback_sim_' + new Date().toISOString().slice(0, 10) + '.csv';
+  a.click();
+}
+
+// PDF エクスポート（両タブを一時的に表示して印刷）
+function exportPDF() {
+  // 両パネルを印刷対象にする
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('print-show'));
+  document.querySelectorAll('.tab-nav, .tab-btn').forEach(el => el.classList.add('print-hide'));
+  window.print();
+  // 元に戻す
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('print-show'));
+  document.querySelectorAll('.tab-nav, .tab-btn').forEach(el => el.classList.remove('print-hide'));
+}
+
+// ── タブ切り替え ──
+function switchTab(id) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.tab-btn')[id === 'roi' ? 0 : 1].classList.add('active');
+  if (id === 'wage') wCalc();
+}
+
+// ── 時給計算 ──
+let wTakeMode = 'auto';   // 'auto' | 'manual'
+let selectedWage = 'real'; // 'scheduled' | 'overtime' | 'real' | 'daily'
+let wageValues = {};       // 計算結果を保持
+
+// 年収→推定手取り率テーブル（国税庁概算ベース）
+const TAKE_HOME_TABLE = [
+  { max:  1000000, rate: 91 },
+  { max:  1500000, rate: 88 },
+  { max:  2000000, rate: 86 },
+  { max:  2500000, rate: 84 },
+  { max:  3000000, rate: 82 },
+  { max:  4000000, rate: 80 },
+  { max:  5000000, rate: 78 },
+  { max:  6000000, rate: 76 },
+  { max:  7000000, rate: 74 },
+  { max:  8000000, rate: 72 },
+  { max: 10000000, rate: 70 },
+  { max: 12000000, rate: 67 },
+  { max: 15000000, rate: 64 },
+  { max: 20000000, rate: 61 },
+  { max: Infinity,  rate: 57 },
+];
+
+function autoTakeRate(annual) {
+  return (TAKE_HOME_TABLE.find(r => annual <= r.max) || TAKE_HOME_TABLE.at(-1)).rate;
+}
+
+function setTakeMode(mode) {
+  wTakeMode = mode;
+  document.getElementById('wTakeAutoBtn').classList.toggle('active', mode === 'auto');
+  document.getElementById('wTakeManualBtn').classList.toggle('active', mode === 'manual');
+  document.getElementById('wTakeAutoInfo').style.display  = mode === 'auto'   ? '' : 'none';
+  document.getElementById('wTakeManualArea').style.display = mode === 'manual' ? '' : 'none';
+  wCalc();
+}
+
+function wVal(id) { return parseFloat(document.getElementById(id).value) || 0; }
+
+function selectWage(type) {
+  selectedWage = type;
+  document.querySelectorAll('.wage-result-item').forEach(el => el.classList.remove('selected'));
+  const el = document.getElementById('wItem_' + type);
+  if (el) el.classList.add('selected');
+}
+
+function wCalc() {
+  const annual   = wVal('wAnnualNum');
+  const sidePer  = wVal('wSideNum');
+  const workDays = wVal('wWorkDays');
+  const hoursDay = wVal('wHoursDay');
+  const overtime = wVal('wOvertime');
+  const commute  = wVal('wCommuteNum');
+  const prepare  = wVal('wPrepareNum');
+
+  // 手取り率
+  let takeRatePct;
+  if (wTakeMode === 'auto') {
+    takeRatePct = autoTakeRate(annual);
+    // 自動モード表示更新
+    document.getElementById('wTakeAutoInfo').innerHTML =
+      `年収 <strong>${fmt(annual)}円</strong> の推定手取り率: <strong>${takeRatePct}%</strong>
+       <span style="margin-left:8px;color:var(--text-muted)">（手取り約${fmt(Math.round(annual * takeRatePct / 100))}円）</span>`;
+    document.getElementById('wTakeAutoInfo').style.display = '';
+    document.getElementById('wTakeManualArea').style.display = 'none';
+  } else {
+    takeRatePct = wVal('wTakeRateNum');
+    document.getElementById('wTakeAutoInfo').style.display = 'none';
+    document.getElementById('wTakeManualArea').style.display = '';
+    document.getElementById('wTakeRate').value = takeRatePct;
+  }
+  const takeRate = takeRatePct / 100;
+
+  const takeHome    = annual * takeRate;
+  const monthlyBase = takeHome / 12 + sidePer;
+
+  // 月間時間
+  const scheduledH = workDays * hoursDay;
+  const commuteH   = workDays * commute * 2 / 60;
+  const prepareH   = workDays * prepare / 60;
+  const totalWorkH = scheduledH + overtime + commuteH + prepareH;
+
+  // 各種時給
+  wageValues = {
+    scheduled: Math.round(monthlyBase / scheduledH),
+    overtime:  Math.round(monthlyBase / Math.max(scheduledH + overtime, 1)),
+    real:      Math.round(monthlyBase / Math.max(totalWorkH, 1)),
+    daily:     Math.round(monthlyBase / Math.max(totalWorkH, 1) * 8),
+  };
+
+  const items = [
+    { id: 'scheduled', label: '所定労働ベース時給', value: wageValues.scheduled, sub: '手取り÷所定時間' },
+    { id: 'overtime',  label: '残業込み時給',       value: wageValues.overtime,  sub: `残業${overtime}h含む` },
+    { id: 'real',      label: '🎯 実質時給（拘束ベース）', value: wageValues.real, sub: '通勤・準備込み', highlight: true },
+    { id: 'daily',     label: '8時間換算 日給',      value: wageValues.daily,     sub: '実質時給 × 8h' },
+  ];
+
+  document.getElementById('wageResults').innerHTML = items.map(it => `
+    <div id="wItem_${it.id}"
+         class="wage-result-item ${it.highlight ? 'highlight' : ''} ${selectedWage === it.id ? 'selected' : ''}"
+         onclick="selectWage('${it.id}')">
+      <div class="label">${it.label}</div>
+      <div class="value">${fmt(it.value)}円${it.id === 'daily' ? '' : '/h'}</div>
+      <div class="sub">${it.sub}</div>
+    </div>
+  `).join('');
+
+  // 時間内訳バー
+  const bars = [
+    { label: '所定労働', hours: scheduledH, color: '#10b981' },
+    { label: '残業',     hours: overtime,   color: '#f59e0b' },
+    { label: '通勤（往復）', hours: commuteH, color: '#3b82f6' },
+    { label: '出勤準備', hours: prepareH,   color: '#8b5cf6' },
+  ];
+  document.getElementById('wageBreakdown').innerHTML = bars.map(b => `
+    <div class="wage-bar-wrap">
+      <div class="wage-bar-label">
+        <span>${b.label}</span>
+        <span style="font-weight:600">${b.hours.toFixed(1)}時間 / 月</span>
+      </div>
+      <div class="wage-bar-track">
+        <div class="wage-bar-fill" style="width:${totalWorkH > 0 ? (b.hours/totalWorkH*100).toFixed(1) : 0}%;background:${b.color}"></div>
+      </div>
+    </div>
+  `).join('') + `<div style="text-align:right;font-size:0.8rem;color:var(--text-muted);margin-top:4px">合計拘束時間: <strong>${totalWorkH.toFixed(1)}時間/月</strong></div>`;
+
+  // ベンチマーク（実質時給で比較）
+  const benchmarks = [
+    { label: '最低賃金（東京）', value: 1163 },
+    { label: 'フルタイム平均',   value: 1800 },
+    { label: '正社員平均',       value: 2200 },
+    { label: '士業・専門職',     value: 3500 },
+    { label: 'コンサル・外資',   value: 5000 },
+  ];
+  const ref = wageValues.real;
+  document.getElementById('wageBenchmark').innerHTML = benchmarks.map(b => `
+    <div style="margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;font-size:0.78rem;margin-bottom:3px">
+        <span>${b.label}</span>
+        <span style="color:var(--text-muted)">${fmt(b.value)}円/h</span>
+      </div>
+      <div class="wage-bar-track">
+        <div class="wage-bar-fill" style="width:${Math.min(ref/b.value*100,100).toFixed(1)}%;background:${ref >= b.value ? 'var(--primary)' : '#cbd5e1'}"></div>
+      </div>
+    </div>
+  `).join('') + `<p style="font-size:0.75rem;color:var(--text-muted);margin-top:8px">実質時給: <strong style="color:var(--primary-dark)">${fmt(ref)}円/h</strong></p>`;
+}
+
+function applyWageToROI() {
+  const wage = wageValues[selectedWage];
+  if (!wage) return;
+  // 日給カードの場合は時給換算（÷8）
+  const applyVal = selectedWage === 'daily' ? Math.round(wage / 8) : wage;
+  document.getElementById('hourlyRate').value = applyVal;
+  document.getElementById('hourlyRateSlider').value = Math.min(applyVal, 10000);
+  recalc();
+  switchTab('roi');
+}
+
+// Init — URLハッシュ優先 → localStorage → デフォルト
+if (!loadFromHash()) loadState();
+render();
+wCalc();
+</script>
+</body>
+</html>
