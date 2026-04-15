@@ -4,30 +4,47 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Buy-Back Time Simulator</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
 <style>
 :root {
-  --primary: #10b981;
-  --primary-light: #d1fae5;
-  --primary-dark: #059669;
-  --danger: #ef4444;
-  --warning: #f59e0b;
-  --bg: #f8fafc;
+  --primary: #1a1a1a;
+  --primary-light: #f0f0f0;
+  --primary-dark: #000000;
+  --danger: #dc2626;
+  --warning: #ea580c;
+  --success: #16a34a;
+  --bg: #fafafa;
   --card: #ffffff;
-  --text: #1e293b;
-  --text-muted: #64748b;
-  --border: #e2e8f0;
-  --shadow: 0 1px 3px rgba(0,0,0,0.1);
+  --text: #1a1a1a;
+  --text-muted: #737373;
+  --border: #e5e5e5;
+  --shadow: 0 1px 2px rgba(0,0,0,0.08);
   --radius: 12px;
+}
+
+:root.dark {
+  --bg: #111111;
+  --card: #1a1a1a;
+  --text: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --border: #2d2d2d;
+  --shadow: 0 1px 2px rgba(0,0,0,0.3);
 }
 
 * { margin: 0; padding: 0; box-sizing: border-box; }
 
+html { scroll-behavior: smooth; }
+
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
+  font-family: 'Noto Sans JP', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Hiragino Sans', sans-serif;
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
+  font-weight: 300;
+  letter-spacing: 0.02em;
 }
 
 .app-header {
@@ -35,19 +52,47 @@ body {
   border-bottom: 1px solid var(--border);
   padding: 20px 0;
   text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
-.app-header h1 { font-size: 1.5rem; }
-.app-header p { color: var(--text-muted); font-size: 0.875rem; margin-top: 4px; }
+.app-header h1 { font-size: 1.5rem; font-weight: 600; letter-spacing: 0.04em; }
+.app-header p { color: var(--text-muted); font-size: 0.875rem; margin-top: 0; }
+.app-header .header-content { flex: 1; min-width: 200px; }
+
+.dark-mode-toggle {
+  padding: 8px 16px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  border-radius: 99px;
+  cursor: pointer;
+  font-size: 1.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  color: var(--text);
+  min-width: 44px;
+  height: 44px;
+}
+.dark-mode-toggle:hover {
+  border-color: var(--primary);
+  background: var(--primary-light);
+}
+
 .share-btn {
-  margin-top: 10px; padding: 7px 18px; border-radius: 99px;
+  margin-top: 10px; padding: 10px 18px; border-radius: 99px;
   border: 1px solid var(--border); background: var(--card);
   font-size: 0.82rem; cursor: pointer; transition: all 0.2s; color: var(--text);
+  font-weight: 500;
 }
-.share-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+.share-btn:hover { background: var(--primary-light); border-color: var(--primary); }
 .share-btn.copied { background: var(--primary); color: white; border-color: var(--primary); }
 
 .container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
   padding: 24px 16px;
   display: grid;
@@ -85,18 +130,20 @@ body {
 }
 .appliance-header .icon { font-size: 1.5rem; }
 .appliance-header .info { flex: 1; }
-.appliance-header .info h3 { font-size: 0.95rem; }
-.appliance-header .info p { font-size: 0.75rem; color: var(--text-muted); }
+.appliance-header .info h3 { font-size: 0.95rem; font-weight: 600; }
+.appliance-header .info p { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
 .appliance-header .badge {
-  font-size: 0.75rem; font-weight: 600;
-  padding: 2px 8px; border-radius: 99px;
+  font-size: 10px; font-weight: 600;
+  padding: 4px 10px; border-radius: 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .badge-positive { background: var(--primary-light); color: var(--primary-dark); }
 .badge-negative { background: #fee2e2; color: var(--danger); }
 
 .appliance-checkbox {
   width: 20px; height: 20px; border-radius: 6px;
-  border: 2px solid var(--border); background: white;
+  border: 1.5px solid var(--border); background: var(--card);
   display: flex; align-items: center; justify-content: center;
   flex-shrink: 0; transition: all 0.2s;
 }
@@ -115,7 +162,10 @@ body {
 .field { margin-bottom: 12px; }
 .field label {
   display: flex; justify-content: space-between; align-items: center;
-  font-size: 0.8rem; color: var(--text-muted); margin-bottom: 4px;
+  font-size: 0.8rem; color: var(--text-muted); margin-bottom: 6px;
+  font-weight: 500;
+  text-transform: capitalize;
+  letter-spacing: 0.04em;
 }
 .field .input-wrap {
   display: flex; align-items: center; gap: 8px;
@@ -124,26 +174,32 @@ body {
   flex: 1; accent-color: var(--primary);
 }
 .field .num-input {
-  width: 90px; text-align: right; padding: 6px 8px;
+  width: 90px; text-align: right; padding: 8px 10px;
   border: 1px solid var(--border); border-radius: 8px;
   font-size: 0.9rem; outline: none;
+  background: var(--card);
+  color: var(--text);
+  transition: border-color 0.2s;
 }
 .field .num-input:focus { border-color: var(--primary); }
 .field .unit { font-size: 0.8rem; color: var(--text-muted); min-width: 30px; }
 
 /* Hourly rate section */
-.hourly-section h3 { font-size: 0.9rem; margin-bottom: 12px; }
+.hourly-section h3 { font-size: 0.9rem; margin-bottom: 12px; font-weight: 600; }
 .hourly-section .big-input {
-  width: 100%; padding: 10px 12px; font-size: 1.1rem;
+  width: 100%; padding: 12px 14px; font-size: 1.1rem;
   border: 1px solid var(--border); border-radius: 8px; outline: none;
-  margin-bottom: 8px;
+  margin-bottom: 10px;
+  background: var(--card);
+  color: var(--text);
+  transition: border-color 0.2s;
 }
 .hourly-section .big-input:focus { border-color: var(--primary); }
 .hourly-section input[type=range] { width: 100%; accent-color: var(--primary); }
-.hourly-section .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+.hourly-section .hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
 
 /* Investment section */
-.invest-section h3 { font-size: 0.9rem; margin-bottom: 12px; }
+.invest-section h3 { font-size: 0.9rem; margin-bottom: 12px; font-weight: 600; }
 
 /* Right panel */
 .results { display: flex; flex-direction: column; gap: 20px; }
@@ -155,40 +211,40 @@ body {
 .summary-item {
   background: var(--bg); border-radius: 10px; padding: 16px; text-align: center;
 }
-.summary-item .label { font-size: 0.75rem; color: var(--text-muted); }
-.summary-item .value { font-size: 1.4rem; font-weight: 700; margin-top: 4px; }
-.summary-item .sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
-.value-positive { color: var(--primary-dark); }
+.summary-item .label { font-size: 0.75rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.08em; }
+.summary-item .value { font-size: 1.4rem; font-weight: 600; margin-top: 8px; letter-spacing: 0.02em; }
+.summary-item .sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+.value-positive { color: var(--success); }
 .value-negative { color: var(--danger); }
 
 .payback-bar {
   background: var(--bg); border-radius: 10px; padding: 16px;
 }
-.payback-bar h3 { font-size: 0.9rem; margin-bottom: 8px; }
+.payback-bar h3 { font-size: 0.9rem; margin-bottom: 12px; font-weight: 600; }
 .payback-bar .bar-track {
-  height: 32px; background: #e2e8f0; border-radius: 8px;
+  height: 8px; background: var(--border); border-radius: 99px;
   position: relative; overflow: hidden;
 }
 .payback-bar .bar-fill {
-  height: 100%; border-radius: 8px;
+  height: 100%; border-radius: 99px;
   display: flex; align-items: center; padding: 0 12px;
-  font-size: 0.8rem; font-weight: 600; color: white;
+  font-size: 0.75rem; font-weight: 600; color: white;
   transition: width 0.5s ease;
 }
-.bar-fill.fast { background: var(--primary); }
+.bar-fill.fast { background: var(--success); }
 .bar-fill.medium { background: var(--warning); }
 .bar-fill.slow { background: var(--danger); }
 .payback-bar .bar-labels {
   display: flex; justify-content: space-between;
-  font-size: 0.7rem; color: var(--text-muted); margin-top: 4px;
+  font-size: 0.7rem; color: var(--text-muted); margin-top: 6px;
 }
 .payback-rating {
-  display: inline-block; padding: 4px 12px; border-radius: 99px;
-  font-size: 0.8rem; font-weight: 600; margin-top: 8px;
+  display: inline-block; padding: 6px 14px; border-radius: 99px;
+  font-size: 0.8rem; font-weight: 600; margin-top: 12px;
 }
 .rating-excellent { background: var(--primary-light); color: var(--primary-dark); }
 .rating-good { background: #fef3c7; color: #92400e; }
-.rating-caution { background: #ffedd5; color: #9a3412; }
+.rating-caution { background: #fed7aa; color: #92400e; }
 .rating-poor { background: #fee2e2; color: var(--danger); }
 
 .chart-grid {
@@ -197,25 +253,27 @@ body {
 @media (max-width: 900px) { .chart-grid { grid-template-columns: 1fr; } }
 
 .chart-card { padding: 16px; }
-.chart-card h3 { font-size: 0.9rem; margin-bottom: 12px; }
+.chart-card h3 { font-size: 0.9rem; margin-bottom: 12px; font-weight: 600; }
 .chart-card canvas { width: 100% !important; }
 
 /* Breakdown table */
 .breakdown-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
 .breakdown-table th {
-  text-align: left; padding: 8px 12px;
+  text-align: left; padding: 10px 12px;
   border-bottom: 2px solid var(--border); color: var(--text-muted);
   font-weight: 600; font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
 }
 .breakdown-table td {
-  padding: 8px 12px; border-bottom: 1px solid var(--border);
+  padding: 10px 12px; border-bottom: 1px solid var(--border);
 }
 .breakdown-table .section-header td {
   padding: 12px 12px 6px; font-weight: 700; font-size: 0.85rem;
   border-bottom: none; color: var(--text);
 }
 .breakdown-table .amount { text-align: right; font-variant-numeric: tabular-nums; }
-.breakdown-table .positive { color: var(--primary-dark); font-weight: 600; }
+.breakdown-table .positive { color: var(--success); font-weight: 600; }
 .breakdown-table .negative { color: var(--danger); }
 .breakdown-table .total-row td {
   font-weight: 700; border-top: 2px solid var(--text);
@@ -234,17 +292,20 @@ body {
 .delete-btn:hover { background: #fee2e2; color: var(--danger); }
 
 .name-input {
-  width: 100%; padding: 6px 8px;
+  width: 100%; padding: 8px 10px;
   border: 1px solid var(--border); border-radius: 8px;
   font-size: 0.9rem; outline: none;
+  background: var(--card);
+  color: var(--text);
+  transition: border-color 0.2s;
 }
 .name-input:focus { border-color: var(--primary); }
 
 .add-btn {
-  width: 100%; padding: 12px; border: 2px dashed var(--border);
+  width: 100%; padding: 12px; border: 1.5px dashed var(--border);
   border-radius: var(--radius); background: transparent;
   color: var(--text-muted); font-size: 0.9rem; cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s; font-weight: 500;
 }
 .add-btn:hover { border-color: var(--primary); color: var(--primary); }
 
@@ -252,18 +313,19 @@ body {
   text-align: center; padding: 60px 20px; color: var(--text-muted);
 }
 .empty-state .icon { font-size: 3rem; margin-bottom: 12px; }
-.empty-state h3 { margin-bottom: 8px; }
+.empty-state h3 { margin-bottom: 8px; font-weight: 600; }
 
 .export-btn {
-  padding: 6px 14px; border-radius: 8px; font-size: 0.8rem;
+  padding: 8px 14px; border-radius: 8px; font-size: 0.8rem;
   border: 1px solid var(--border); background: var(--card);
   cursor: pointer; transition: all 0.2s; color: var(--text);
+  font-weight: 500;
 }
-.export-btn:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary-dark); }
+.export-btn:hover { background: var(--primary-light); border-color: var(--primary); }
 
 @media print {
   .sidebar, .app-header button, .export-btn, .delete-btn, .add-btn,
-  .tab-nav, .apply-btn, .share-btn, .print-hide { display: none !important; }
+  .tab-nav, .apply-btn, .share-btn, .print-hide, .dark-mode-toggle { display: none !important; }
   .container { grid-template-columns: 1fr !important; }
   .card { break-inside: avoid; }
   .tab-panel { display: none !important; }
@@ -276,12 +338,12 @@ body {
 .tab-nav {
   display: flex; gap: 4px; padding: 0 24px;
   background: var(--card); border-bottom: 1px solid var(--border);
-  max-width: 1200px; margin: 0 auto;
+  max-width: 1100px; margin: 0 auto;
 }
 .tab-btn {
   padding: 12px 20px; font-size: 0.9rem; font-weight: 600;
   border: none; background: transparent; cursor: pointer;
-  color: var(--text-muted); border-bottom: 3px solid transparent;
+  color: var(--text-muted); border-bottom: 2px solid transparent;
   transition: all 0.2s; margin-bottom: -1px;
 }
 .tab-btn:hover { color: var(--text); }
@@ -291,7 +353,7 @@ body {
 
 /* ── 時給計算タブ ── */
 .wage-container {
-  max-width: 900px; margin: 0 auto; padding: 24px 16px;
+  max-width: 1100px; margin: 0 auto; padding: 24px 16px;
   display: grid; grid-template-columns: 1fr 1fr; gap: 24px;
 }
 @media (max-width: 700px) { .wage-container { grid-template-columns: 1fr; } }
@@ -303,9 +365,9 @@ body {
 .wage-result-item {
   background: var(--bg); border-radius: 10px; padding: 16px; text-align: center;
 }
-.wage-result-item .label { font-size: 0.72rem; color: var(--text-muted); }
-.wage-result-item .value { font-size: 1.3rem; font-weight: 700; margin-top: 4px; }
-.wage-result-item .sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 2px; }
+.wage-result-item .label { font-size: 0.72rem; color: var(--text-muted); font-weight: 500; }
+.wage-result-item .value { font-size: 1.3rem; font-weight: 600; margin-top: 6px; }
+.wage-result-item .sub { font-size: 0.7rem; color: var(--text-muted); margin-top: 4px; }
 .wage-result-item.highlight { background: var(--primary-light); }
 .wage-result-item.highlight .value { color: var(--primary-dark); }
 
@@ -318,23 +380,23 @@ body {
 
 .wage-section-title {
   font-size: 0.75rem; font-weight: 700; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px;
+  text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 12px;
 }
 
 .wage-bar-wrap { margin-top: 16px; }
-.wage-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 4px; }
+.wage-bar-label { display: flex; justify-content: space-between; font-size: 0.75rem; color: var(--text-muted); margin-bottom: 6px; font-weight: 500; }
 .wage-bar-track { height: 8px; background: var(--border); border-radius: 99px; overflow: hidden; margin-bottom: 8px; }
 .wage-bar-fill { height: 100%; border-radius: 99px; transition: width 0.4s; }
 
 .take-mode-btn {
-  padding: 2px 10px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;
+  padding: 4px 12px; border-radius: 99px; font-size: 0.72rem; font-weight: 600;
   border: 1px solid var(--border); background: var(--card); cursor: pointer;
   color: var(--text-muted); transition: all 0.15s;
 }
 .take-mode-btn.active { background: var(--primary); border-color: var(--primary); color: white; }
 
 .take-auto-info {
-  margin-top: 6px; padding: 8px 12px; border-radius: 8px;
+  margin-top: 6px; padding: 10px 12px; border-radius: 8px;
   background: var(--primary-light); font-size: 0.82rem; color: var(--primary-dark);
 }
 
@@ -348,13 +410,127 @@ body {
   content: '✓'; position: absolute; top: 6px; right: 8px;
   font-size: 0.75rem; color: var(--primary-dark); font-weight: 700;
 }
+
+/* New feature cards styling */
+.feature-card {
+  background: var(--bg);
+  border-radius: 10px;
+  padding: 16px;
+}
+.feature-card h4 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+.feature-item {
+  margin-bottom: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+.feature-item:last-child {
+  margin-bottom: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+.feature-label {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+  font-weight: 500;
+}
+.feature-value {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.feature-sub {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.dividend-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.dividend-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.dividend-item .value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text);
+  margin-top: 4px;
+}
+.dividend-item .label {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  margin-top: 3px;
+}
+
+.future-value-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-top: 8px;
+}
+@media (max-width: 600px) {
+  .future-value-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.fv-item {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 12px;
+  text-align: center;
+}
+.fv-item .year {
+  font-size: 0.7rem;
+  color: var(--text-muted);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+.fv-item .value {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--text);
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.card {
+  animation: fadeUp 0.3s ease;
+}
 </style>
 </head>
 <body>
 
 <header class="app-header">
-  <h1>⏳ Buy-Back Time Simulator</h1>
-  <p>家電の時間節約価値・投資リターンを可視化</p>
+  <div class="header-content">
+    <h1>⏳ Buy-Back Time Simulator</h1>
+    <p>家電の時間節約価値・投資リターンを可視化</p>
+  </div>
+  <button class="dark-mode-toggle" id="darkModeToggle" onclick="toggleDarkMode()" title="ダークモード切り替え">☀</button>
   <button class="share-btn" onclick="copyShareLink()" id="shareBtn">🔗 この設定を共有</button>
 </header>
 
@@ -390,6 +566,13 @@ body {
           <input type="range" id="investRate" min="1" max="15" step="0.5" value="5" oninput="document.getElementById('investRateDisplay').textContent=this.value+'%'; recalc()">
         </div>
         <p class="hint" style="margin-top:4px">S&P500平均: 約7% / オルカン: 約5%</p>
+      </div>
+      <div class="field">
+        <label>配当利回り <span id="dividendYieldDisplay">3%</span></label>
+        <div class="input-wrap">
+          <input type="range" id="dividendYield" min="1" max="7" step="0.5" value="3" oninput="document.getElementById('dividendYieldDisplay').textContent=this.value+'%'; recalc()">
+        </div>
+        <p class="hint" style="margin-top:4px">高配当株: 3～5% / 一般的な株式: 2～3%</p>
       </div>
     </div>
   </div>
@@ -527,7 +710,8 @@ const PRESETS = [
   { id: 'dryer', icon: '👔', name: '衣類乾燥機', desc: '外干し不要', price: 70000, install: 5000, monthlyCost: 800, timePerUse: 15, usesPerMonth: 20, lifeYears: 8 },
 ];
 
-const STORAGE_KEY = 'buyback_sim_v1';
+const STORAGE_KEY = 'buyback_sim_v2';
+const DARK_MODE_KEY = 'buyback_sim_dark_mode';
 
 function saveState() {
   const state = {
@@ -535,6 +719,7 @@ function saveState() {
     customCount,
     hourlyRate: document.getElementById('hourlyRate')?.value,
     investRate: document.getElementById('investRate')?.value,
+    dividendYield: document.getElementById('dividendYield')?.value,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
@@ -554,8 +739,29 @@ function loadState() {
       document.getElementById('investRate').value = state.investRate;
       document.getElementById('investRateDisplay').textContent = state.investRate + '%';
     }
+    if (state.dividendYield) {
+      document.getElementById('dividendYield').value = state.dividendYield;
+      document.getElementById('dividendYieldDisplay').textContent = state.dividendYield + '%';
+    }
     return true;
   } catch(e) { return false; }
+}
+
+function initDarkMode() {
+  const isDark = localStorage.getItem(DARK_MODE_KEY) === 'true';
+  if (isDark) {
+    document.documentElement.classList.add('dark');
+    document.getElementById('darkModeToggle').textContent = '☀';
+  } else {
+    document.documentElement.classList.remove('dark');
+    document.getElementById('darkModeToggle').textContent = '●';
+  }
+}
+
+function toggleDarkMode() {
+  const isDark = document.documentElement.classList.toggle('dark');
+  localStorage.setItem(DARK_MODE_KEY, isDark);
+  document.getElementById('darkModeToggle').textContent = isDark ? '☀' : '●';
 }
 
 let appliances = PRESETS.map(p => ({ ...p, active: false }));
@@ -579,7 +785,7 @@ function render() {
           <p>${a.desc}</p>
         </div>
         <span class="badge ${a.active ? badgeClass : ''}">${badgeText}</span>
-        <button class="delete-btn" onclick="event.stopPropagation(); removeAppliance(${i})" title="削除">✕</button>
+        <button class="delete-btn" onclick="event.stopPropagation(); removeAppliance(${i})" title="削除">×</button>
       </div>
       <div class="appliance-details" onclick="event.stopPropagation()">
         <div class="field">
@@ -621,7 +827,6 @@ function toggle(i) {
 function updateVal(i, key, val) {
   appliances[i][key] = Number(val);
   recalc();
-  // Update badge
   const cards = document.querySelectorAll('.appliance-card');
   if (cards[i] && appliances[i].active) {
     const badge = cards[i].querySelector('.badge');
@@ -633,7 +838,6 @@ function updateVal(i, key, val) {
 
 function updateName(i, val) {
   appliances[i].name = val;
-  // Update badge and header without full re-render to keep focus
   const cards = document.querySelectorAll('.appliance-card');
   if (cards[i]) {
     cards[i].querySelector('.info h3').textContent = val;
@@ -650,6 +854,7 @@ function syncSlider(id, val) { document.getElementById(id).value = val; }
 
 function getHourlyRate() { return Number(document.getElementById('hourlyRate').value) || 1500; }
 function getInvestRate() { return Number(document.getElementById('investRate').value) || 5; }
+function getDividendYield() { return Number(document.getElementById('dividendYield').value) || 3; }
 
 function calcMonthlyProfit(a) {
   const rate = getHourlyRate();
@@ -663,8 +868,8 @@ function fmt(n) { return n.toLocaleString('ja-JP'); }
 function addCustomAppliance() {
   customCount++;
   appliances.push({
-    id: 'custom_' + customCount, icon: '⚙️',
-    name: 'カスタム家電 ' + customCount, desc: '自分で設定',
+    id: 'custom_' + customCount, icon: '⚙',
+    name: 'カスタムe��電 ' + customCount, desc: '自分で設定',
     price: 50000, install: 0, monthlyCost: 500,
     timePerUse: 30, usesPerMonth: 15, lifeYears: 5, active: true
   });
@@ -686,6 +891,7 @@ function recalc() {
 
   const rate = getHourlyRate();
   const investRateAnnual = getInvestRate() / 100;
+  const dividendYieldAnnual = getDividendYield() / 100;
 
   let totalInitial = 0, totalMonthlyProfit = 0, totalMonthlyHours = 0, totalMonthlyCost = 0;
   const items = active.map(a => {
@@ -707,8 +913,24 @@ function recalc() {
   const lifetimeValue = totalMonthlyProfit * maxLifeMonths;
   const annualROI = totalInitial > 0 ? ((totalMonthlyProfit * 12) / totalInitial * 100) : 0;
 
-  // Investment comparison: if you invested totalInitial instead
+  // Investment comparison
   const investMonthlyRate = Math.pow(1 + investRateAnnual, 1/12) - 1;
+
+  // Feature 1: 何時間分の労働と交換？
+  const totalAnnualHours = totalMonthlyHours * 12;
+  const totalWorkHours = Math.floor(totalAnnualHours);
+  const remainingMinutes = Math.round((totalAnnualHours - totalWorkHours) * 60);
+  const workHoursForTotal = Math.floor(totalInitial / rate);
+  const workMinutesForTotal = Math.round(((totalInitial / rate) - workHoursForTotal) * 60);
+
+  // Feature 2: 配当金換算
+  const annualDividend = totalInitial * dividendYieldAnnual;
+  const requiredCapitalForMonthlyProfit = (totalMonthlyProfit * 12) / dividendYieldAnnual;
+
+  // Feature 3: 将来価値
+  const fv10 = totalInitial * Math.pow(1 + investRateAnnual, 10);
+  const fv20 = totalInitial * Math.pow(1 + investRateAnnual, 20);
+  const fv30 = totalInitial * Math.pow(1 + investRateAnnual, 30);
 
   // Build payback bar
   const maxMonths = 36;
@@ -717,7 +939,7 @@ function recalc() {
   const ratingText = totalPayback <= 6 ? '🏆 超優良投資' : totalPayback <= 12 ? '👍 良い投資' : totalPayback <= 18 ? '🤔 まずまず' : totalPayback <= 24 ? '⚠️ 要検討' : totalPayback <= 36 ? '😰 再検討を推奨' : '❌ 購入困難';
   const paybackLabel = totalPayback === Infinity ? '回収不可' : totalPayback + 'ヶ月で回収';
 
-  // Charts data — 横軸は最大耐用年数に合わせる
+  // Charts data
   const chartMonths = Array.from({length: maxLifeMonths + 1}, (_, i) => i);
   const chartLabels = chartMonths.map(m => {
     if (m === 0) return '購入';
@@ -726,12 +948,10 @@ function recalc() {
   });
   const cumulativeValues = chartMonths.map(m => totalMonthlyProfit * m);
   const initialLine = chartMonths.map(() => totalInitial);
-  // 節約額を毎月積立投資した場合（年金終価係数）
   const investLine = chartMonths.map(m => {
     if (m === 0 || investMonthlyRate === 0) return 0;
     return totalMonthlyProfit * ((Math.pow(1 + investMonthlyRate, m) - 1) / investMonthlyRate);
   });
-
 
   // Table rows
   let tableHTML = `<tr><th>家電 / 項目</th><th>金額</th><th>備考</th></tr>`;
@@ -746,7 +966,6 @@ function recalc() {
   });
   tableHTML += `<tr class="total-row"><td>合計</td><td class="amount">${fmt(totalInitial)} 円 / 月${fmt(Math.round(totalMonthlyProfit))}円</td><td class="note">初期費用 / 月間節約価値</td></tr>`;
 
-  // 節約額を積立投資した場合の耐用期間終了時の総額
   const lifetimeInvestTotal = investLine[investLine.length - 1];
 
   panel.innerHTML = `
@@ -804,6 +1023,67 @@ function recalc() {
       </div>
     </div>
 
+    <div class="card feature-card">
+      <h4>⏳ 何時間分の労働と交換？</h4>
+      <div class="feature-item">
+        <div class="feature-label">この購入は</div>
+        <div class="feature-value">${workHoursForTotal}時間${workMinutesForTotal}分</div>
+        <div class="feature-sub">の労働と交換です</div>
+      </div>
+      <div class="feature-item">
+        <div class="feature-label">節約できる労働時間（年間）</div>
+        <div class="feature-value value-positive">${totalWorkHours}時間${remainingMinutes}分</div>
+        <div class="feature-sub">${maxLifeYears}年間の総節約時間</div>
+      </div>
+      ${items.map(it => {
+        const itemHours = Math.floor((it.initial / rate));
+        const itemMinutes = Math.round(((it.initial / rate) - itemHours) * 60);
+        return `
+        <div class="feature-item" style="border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 8px;">
+          <div class="feature-label">${it.icon} ${it.name}</div>
+          <div class="feature-sub">${itemHours}時間${itemMinutes}分の労働と交換</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="card feature-card">
+      <h4>💰 配当金換算</h4>
+      <div class="dividend-grid">
+        <div class="dividend-item">
+          <div class="label">この購入費用を投資していた場合<br>の年間配当金</div>
+          <div class="value value-positive">${fmt(Math.round(annualDividend))}円</div>
+        </div>
+        <div class="dividend-item">
+          <div class="label">月々の節約価値を配当で得るために<br>必要な元本</div>
+          <div class="value">${fmt(Math.round(requiredCapitalForMonthlyProfit))}円</div>
+        </div>
+      </div>
+      <p style="font-size:0.75rem;color:var(--text-muted);margin-top:12px;text-align:center">
+        配当利回り: ${getDividendYield()}% / 月間節約: ${fmt(Math.round(totalMonthlyProfit))}円
+      </p>
+    </div>
+
+    <div class="card feature-card">
+      <h4>📈 将来価値（投資した場合）</h4>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-bottom:10px">
+        この購入費用 ${fmt(totalInitial)}円 を年${getInvestRate()}%で投資していた場合の将来価値
+      </div>
+      <div class="future-value-grid">
+        <div class="fv-item">
+          <div class="year">10年後</div>
+          <div class="value">${fmt(Math.round(fv10))}円</div>
+        </div>
+        <div class="fv-item">
+          <div class="year">20年後</div>
+          <div class="value">${fmt(Math.round(fv20))}円</div>
+        </div>
+        <div class="fv-item">
+          <div class="year">30年後</div>
+          <div class="value">${fmt(Math.round(fv30))}円</div>
+        </div>
+      </div>
+    </div>
+
     <div class="card chart-card">
       <h3>累計価値 vs 初期費用 vs 投資リターン（耐用年数: ${maxLifeYears}年）</h3>
       <canvas id="cumulativeChart"></canvas>
@@ -822,7 +1102,6 @@ function recalc() {
   `;
 
   saveState();
-  // Render charts
   renderCharts(chartLabels, cumulativeValues, initialLine, investLine);
 }
 
@@ -835,9 +1114,9 @@ function renderCharts(labels, cumValues, initLine, investLine) {
     data: {
       labels,
       datasets: [
-        { label: '初期費用', data: initLine, borderColor: '#ef4444', borderDash: [5,5], borderWidth: 2, pointRadius: 0, fill: false },
-        { label: '累計節約価値', data: cumValues, borderColor: '#10b981', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(16,185,129,0.1)' },
-        { label: '節約額を積立投資した場合', data: investLine, borderColor: '#3b82f6', borderDash: [4,4], borderWidth: 2, pointRadius: 0, fill: false }
+        { label: '初期費用', data: initLine, borderColor: '#dc2626', borderDash: [5,5], borderWidth: 2, pointRadius: 0, fill: false },
+        { label: '累計節約価値', data: cumValues, borderColor: '#16a34a', borderWidth: 2, pointRadius: 0, fill: true, backgroundColor: 'rgba(22,163,74,0.1)' },
+        { label: '節約額を積立投資した場合', data: investLine, borderColor: '#0066cc', borderDash: [4,4], borderWidth: 2, pointRadius: 0, fill: false }
       ]
     },
     options: {
@@ -852,13 +1131,13 @@ function renderCharts(labels, cumValues, initLine, investLine) {
   });
 }
 
-// 共有リンク
 function copyShareLink() {
   const state = {
     appliances,
     customCount,
     hourlyRate: document.getElementById('hourlyRate').value,
     investRate: document.getElementById('investRate').value,
+    dividendYield: document.getElementById('dividendYield').value,
   };
   const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
   const url = location.origin + location.pathname + '#s=' + encoded;
@@ -884,6 +1163,10 @@ function loadFromHash() {
     if (state.investRate) {
       document.getElementById('investRate').value = state.investRate;
       document.getElementById('investRateDisplay').textContent = state.investRate + '%';
+    }
+    if (state.dividendYield) {
+      document.getElementById('dividendYield').value = state.dividendYield;
+      document.getElementById('dividendYieldDisplay').textContent = state.dividendYield + '%';
     }
     return true;
   } catch(e) { return false; }
@@ -924,7 +1207,6 @@ function exportCSV() {
   const w = getWageData();
   const rows = [];
 
-  // ── セクション1: 時給計算 ──
   rows.push(['■ 時給計算']);
   rows.push(['項目', '値', '単位']);
   rows.push(['年収（額面）', w.annual, '円']);
@@ -944,7 +1226,6 @@ function exportCSV() {
   rows.push(['ROI計算に使用する時給', w.selectedValue, '円']);
   rows.push([]);
 
-  // ── セクション2: 家電ROI ──
   rows.push(['■ 家電ROI']);
   if (active.length === 0) {
     rows.push(['（家電が選択されていません）']);
@@ -961,7 +1242,6 @@ function exportCSV() {
   }
   rows.push([]);
 
-  // ── セクション3: 手取り率参考表 ──
   rows.push(['■ 手取り率参考表（国税庁概算ベース）']);
   rows.push(['年収の目安', '推定手取り率', '手取り額の目安（年）', '備考']);
   [
@@ -992,13 +1272,11 @@ function exportCSV() {
   a.click();
 }
 
-// PDF エクスポート（両タブを一時的に表示して印刷）
+// PDF エクスポート
 function exportPDF() {
-  // 両パネルを印刷対象にする
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.add('print-show'));
   document.querySelectorAll('.tab-nav, .tab-btn').forEach(el => el.classList.add('print-hide'));
   window.print();
-  // 元に戻す
   document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('print-show'));
   document.querySelectorAll('.tab-nav, .tab-btn').forEach(el => el.classList.remove('print-hide'));
 }
@@ -1013,11 +1291,10 @@ function switchTab(id) {
 }
 
 // ── 時給計算 ──
-let wTakeMode = 'auto';   // 'auto' | 'manual'
-let selectedWage = 'real'; // 'scheduled' | 'overtime' | 'real' | 'daily'
-let wageValues = {};       // 計算結果を保持
+let wTakeMode = 'auto';
+let selectedWage = 'real';
+let wageValues = {};
 
-// 年収→推定手取り率テーブル（国税庁概算ベース）
 const TAKE_HOME_TABLE = [
   { max:  1000000, rate: 91 },
   { max:  1500000, rate: 88 },
@@ -1067,11 +1344,9 @@ function wCalc() {
   const commute  = wVal('wCommuteNum');
   const prepare  = wVal('wPrepareNum');
 
-  // 手取り率
   let takeRatePct;
   if (wTakeMode === 'auto') {
     takeRatePct = autoTakeRate(annual);
-    // 自動モード表示更新
     document.getElementById('wTakeAutoInfo').innerHTML =
       `年収 <strong>${fmt(annual)}円</strong> の推定手取り率: <strong>${takeRatePct}%</strong>
        <span style="margin-left:8px;color:var(--text-muted)">（手取り約${fmt(Math.round(annual * takeRatePct / 100))}円）</span>`;
@@ -1088,13 +1363,11 @@ function wCalc() {
   const takeHome    = annual * takeRate;
   const monthlyBase = takeHome / 12 + sidePer;
 
-  // 月間時間
   const scheduledH = workDays * hoursDay;
   const commuteH   = workDays * commute * 2 / 60;
   const prepareH   = workDays * prepare / 60;
   const totalWorkH = scheduledH + overtime + commuteH + prepareH;
 
-  // 各種時給
   wageValues = {
     scheduled: Math.round(monthlyBase / scheduledH),
     overtime:  Math.round(monthlyBase / Math.max(scheduledH + overtime, 1)),
@@ -1119,12 +1392,11 @@ function wCalc() {
     </div>
   `).join('');
 
-  // 時間内訳バー
   const bars = [
-    { label: '所定労働', hours: scheduledH, color: '#10b981' },
-    { label: '残業',     hours: overtime,   color: '#f59e0b' },
-    { label: '通勤（往復）', hours: commuteH, color: '#3b82f6' },
-    { label: '出勤準備', hours: prepareH,   color: '#8b5cf6' },
+    { label: '所定労働', hours: scheduledH, color: '#16a34a' },
+    { label: '残業',     hours: overtime,   color: '#ea580c' },
+    { label: '通勤（往復）', hours: commuteH, color: '#0066cc' },
+    { label: '出勤準備', hours: prepareH,   color: '#7c3aed' },
   ];
   document.getElementById('wageBreakdown').innerHTML = bars.map(b => `
     <div class="wage-bar-wrap">
@@ -1138,7 +1410,6 @@ function wCalc() {
     </div>
   `).join('') + `<div style="text-align:right;font-size:0.8rem;color:var(--text-muted);margin-top:4px">合計拘束時間: <strong>${totalWorkH.toFixed(1)}時間/月</strong></div>`;
 
-  // ベンチマーク（実質時給で比較）
   const benchmarks = [
     { label: '最低賃金（東京）', value: 1163 },
     { label: 'フルタイム平均',   value: 1800 },
@@ -1163,7 +1434,6 @@ function wCalc() {
 function applyWageToROI() {
   const wage = wageValues[selectedWage];
   if (!wage) return;
-  // 日給カードの場合は時給換算（÷8）
   const applyVal = selectedWage === 'daily' ? Math.round(wage / 8) : wage;
   document.getElementById('hourlyRate').value = applyVal;
   document.getElementById('hourlyRateSlider').value = Math.min(applyVal, 10000);
@@ -1171,7 +1441,8 @@ function applyWageToROI() {
   switchTab('roi');
 }
 
-// Init — URLハッシュ優先 → localStorage → デフォルト
+// Init
+initDarkMode();
 if (!loadFromHash()) loadState();
 render();
 wCalc();
