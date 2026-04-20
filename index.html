@@ -722,6 +722,11 @@ function saveState() {
     dividendYield: document.getElementById('dividendYield')?.value,
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  // URLハッシュも自動更新（ブックマーク or コピーすればどのデバイスからでも再現可能）
+  try {
+    const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
+    history.replaceState(null, '', '#s=' + encoded);
+  } catch(e) {}
 }
 
 function loadState() {
@@ -869,7 +874,7 @@ function addCustomAppliance() {
   customCount++;
   appliances.push({
     id: 'custom_' + customCount, icon: '⚙',
-    name: 'カスタムe��電 ' + customCount, desc: '自分で設定',
+    name: 'カスタム家電 ' + customCount, desc: '自分で設定',
     price: 50000, install: 0, monthlyCost: 500,
     timePerUse: 30, usesPerMonth: 15, lifeYears: 5, active: true
   });
