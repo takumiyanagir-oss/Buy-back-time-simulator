@@ -712,43 +712,66 @@ const PRESETS = [
 
 const STORAGE_KEY = 'buyback_sim_v2';
 const DARK_MODE_KEY = 'buyback_sim_dark_mode';
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbzizDk-xtsCae3lGJ-KDyMqkriNrJJ59BMdokj-VrCOz9Th7hsLzbd7Xep5wggNJ2si2Q/exec';
 
-function saveState() {
-  const state = {
+function getState() {
+  return {
     appliances,
     customCount,
     hourlyRate: document.getElementById('hourlyRate')?.value,
     investRate: document.getElementById('investRate')?.value,
     dividendYield: document.getElementById('dividendYield')?.value,
   };
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  // URLハッシュも自動更新（ブックマーク or コピーすればどのデバイスからでも再現可能）
-  try {
-    const encoded = btoa(encodeURIComponent(JSON.stringify(state)));
-    history.replaceState(null, '', '#s=' + encoded);
-  } catch(e) {}
 }
 
-function loadState() {
+function applyState(state) {
+  if (!state) return false;
+  if (state.appliances) appliances = state.appliances;
+  if (state.customCount) customCount = state.customCount;
+  if (state.hourlyRate) {
+    document.getElementById('hourlyRate').value = state.hourlyRate;
+    document.getElementById('hourlyRateSlider').value = state.hourlyRate;
+  }
+  if (state.investRate) {
+    document.getElementById('investRate').value = state.investRate;
+    document.getElementById('investRateDisplay').textContent = state.investRate + '%';
+  }
+  if (state.dividendYield) {
+    document.getElementById('dividendYield').value = state.dividendYield;
+    document.getElementById('dividendYieldDisplay').textContent = state.dividendYield + '%';
+  }
+  return true;
+}
+
+function saveState() {
+  const state = getState();
+  // ローカルにも保存（オフライン対応）
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  // GASに非同期で保存（固定URLから家族全員が最新状態を読める）
+  fetch(GAS_URL, {
+    method: 'POST',
+    mode: 'no-cors',
+    body: JSON.stringify(state)
+  }).catch(() => {});
+}
+
+async function loadState() {
+  // まずGASから最新状態を取得
+  try {
+    const res = await fetch(GAS_URL);
+    const state = await res.json();
+    if (state && Object.keys(state).length > 0) {
+      applyState(state);
+      // ローカルにもキャッシュ
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      return true;
+    }
+  } catch(e) {}
+  // GAS失敗時はローカルストレージにフォールバック
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return false;
-    const state = JSON.parse(raw);
-    if (state.appliances) appliances = state.appliances;
-    if (state.customCount) customCount = state.customCount;
-    if (state.hourlyRate) {
-      document.getElementById('hourlyRate').value = state.hourlyRate;
-      document.getElementById('hourlyRateSlider').value = state.hourlyRate;
-    }
-    if (state.investRate) {
-      document.getElementById('investRate').value = state.investRate;
-      document.getElementById('investRateDisplay').textContent = state.investRate + '%';
-    }
-    if (state.dividendYield) {
-      document.getElementById('dividendYield').value = state.dividendYield;
-      document.getElementById('dividendYieldDisplay').textContent = state.dividendYield + '%';
-    }
-    return true;
+    return applyState(JSON.parse(raw));
   } catch(e) { return false; }
 }
 
@@ -1448,9 +1471,11 @@ function applyWageToROI() {
 
 // Init
 initDarkMode();
-if (!loadFromHash()) loadState();
-render();
-wCalc();
+(async () => {
+  if (!loadFromHash()) await loadState();
+  render();
+  wCalc();
+})();
 </script>
 </body>
 </html>
