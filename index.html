@@ -673,6 +673,17 @@ body {
   text-align: center; padding: 40px 20px; color: var(--text-muted);
   background: var(--bg); border-radius: 10px;
 }
+
+.lob-chart-wrap {
+  background: var(--card); border: 1px solid var(--border); border-radius: 10px;
+  padding: 16px 12px 10px; margin-top: 16px;
+}
+.lob-chart-wrap h4 {
+  font-size: 0.8rem; font-weight: 600; color: var(--text-muted);
+  text-transform: uppercase; letter-spacing: 0.08em;
+  margin: 0 4px 10px;
+}
+.lob-chart-wrap canvas { width: 100% !important; max-height: 360px; }
 </style>
 </head>
 <body>
@@ -1951,6 +1962,10 @@ function lobCalc() {
       </div>
 
       ${(hasA && hasB) ? `
+      <div class="lob-chart-wrap">
+        <h4>📈 累計コストの推移（${years}年）</h4>
+        <canvas id="lobChart"></canvas>
+      </div>
       <div class="lob-diff-card">
         <span class="label">「${escapeAttr(expensiveLabel)}」を選んだ場合の追加コスト</span>
         <span class="value">+ ${fmt(Math.round(diff))} 円</span>
@@ -1964,11 +1979,68 @@ function lobCalc() {
           <span class="v">${extraHoursPerYear.toFixed(1)} h/年 ・ ${extraHoursPerMonth.toFixed(1)} h/月</span>
         </div>
       </div>` : `
-      <p class="lob-hint" style="margin-top:16px">A と B の両方に項目を入れると、差額と「追加で必要な労働時間」が表示されます</p>
+      <p class="lob-hint" style="margin-top:16px">A と B の両方に項目を入れると、差額・推移グラフ・「追加で必要な労働時間」が表示されます</p>
       `}
     </div>`;
 
+  if (hasA && hasB) {
+    const aSeries = [], bSeries = [];
+    for (let y = 0; y <= years; y++) {
+      aSeries.push(a.init + a.annual * y - (y === years ? a.residual : 0));
+      bSeries.push(b.init + b.annual * y - (y === years ? b.residual : 0));
+    }
+    lobRenderChart(years, aSeries, bSeries, aLabel, bLabel);
+  }
+
   saveState();
+}
+
+let lobChart = null;
+function lobRenderChart(years, aSeries, bSeries, aLabel, bLabel) {
+  if (lobChart) { lobChart.destroy(); lobChart = null; }
+  const canvas = document.getElementById('lobChart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  const labels = Array.from({ length: years + 1 }, (_, i) => i + '年');
+  lobChart = new Chart(canvas.getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: aLabel, data: aSeries,
+          borderColor: '#6366f1', backgroundColor: 'rgba(99,102,241,0.08)',
+          borderWidth: 2.5, fill: false, tension: 0,
+          pointRadius: 3, pointBackgroundColor: '#6366f1', pointBorderColor: '#6366f1',
+        },
+        {
+          label: bLabel, data: bSeries,
+          borderColor: '#f59e0b', backgroundColor: 'rgba(245,158,11,0.08)',
+          borderWidth: 2.5, fill: false, tension: 0,
+          pointRadius: 3, pointBackgroundColor: '#f59e0b', pointBorderColor: '#f59e0b',
+        },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: { position: 'bottom', labels: { boxWidth: 14, font: { size: 12 } } },
+        tooltip: {
+          callbacks: {
+            label: (ctx) => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('ja-JP')} 円`,
+          },
+        },
+      },
+      scales: {
+        x: { ticks: { maxTicksLimit: 12 } },
+        y: {
+          beginAtZero: true,
+          ticks: { callback: (v) => (v / 10000).toFixed(0) + '万' },
+        },
+      },
+    },
+  });
 }
 
 function applyWageToROI() {
