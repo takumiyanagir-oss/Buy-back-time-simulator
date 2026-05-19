@@ -857,13 +857,13 @@ body {
 
 <!-- Tab: Lease or Buy -->
 <div class="tab-panel" id="tab-lob">
-<div class="lob-container">
+<div class="lob-container" data-1p-ignore data-lpignore="true">
 
   <div class="lob-grid">
     <div class="card lob-option" data-side="A">
       <div class="lob-option-header">
         <span class="lob-badge lob-badge-a">Option A</span>
-        <input type="text" class="lob-label-input" id="lobLabelA" placeholder="例: 車を所有 / 家を買う" oninput="lobCalc()">
+        <input type="text" class="lob-label-input" id="lobLabelA" placeholder="例: 車を所有 / 家を買う" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
       </div>
 
       <div class="lob-section">
@@ -881,7 +881,7 @@ body {
       <div class="lob-section">
         <div class="lob-section-title">期末の売却額・返戻金</div>
         <div class="lob-residual-wrap">
-          <input type="number" class="num-input lob-residual" id="lobResidualA" value="0" oninput="lobCalc()">
+          <input type="number" class="num-input lob-residual" id="lobResidualA" value="0" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
           <span class="unit">円</span>
         </div>
         <p class="lob-hint">期間終了時に戻ってくる金額（残価・解約返戻金など。なければ0）</p>
@@ -891,7 +891,7 @@ body {
     <div class="card lob-option" data-side="B">
       <div class="lob-option-header">
         <span class="lob-badge lob-badge-b">Option B</span>
-        <input type="text" class="lob-label-input" id="lobLabelB" placeholder="例: カーシェア＋公共交通 / 賃貸" oninput="lobCalc()">
+        <input type="text" class="lob-label-input" id="lobLabelB" placeholder="例: カーシェア＋公共交通 / 賃貸" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
       </div>
 
       <div class="lob-section">
@@ -909,7 +909,7 @@ body {
       <div class="lob-section">
         <div class="lob-section-title">期末の売却額・返戻金</div>
         <div class="lob-residual-wrap">
-          <input type="number" class="num-input lob-residual" id="lobResidualB" value="0" oninput="lobCalc()">
+          <input type="number" class="num-input lob-residual" id="lobResidualB" value="0" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
           <span class="unit">円</span>
         </div>
         <p class="lob-hint">期間終了時に戻ってくる金額（残価・解約返戻金など。なければ0）</p>
@@ -920,8 +920,8 @@ body {
   <div class="card lob-shared">
     <div class="lob-section-title">⏳ 比較期間</div>
     <div class="input-wrap">
-      <input type="range" id="lobPeriodSlider" min="1" max="40" step="1" value="5" oninput="document.getElementById('lobPeriod').value=this.value;lobCalc()">
-      <input type="number" class="num-input" id="lobPeriod" value="5" min="1" max="100" oninput="document.getElementById('lobPeriodSlider').value=Math.min(this.value,40);lobCalc()">
+      <input type="range" id="lobPeriodSlider" min="1" max="40" step="1" value="5" oninput="document.getElementById('lobPeriod').value=this.value;lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true">
+      <input type="number" class="num-input" id="lobPeriod" value="5" min="1" max="100" oninput="document.getElementById('lobPeriodSlider').value=Math.min(this.value,40);lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
       <span class="unit">年</span>
     </div>
     <p class="lob-hint">この期間の総コストで A と B を比較します（時給は「家電ROI」タブのものを使用）</p>
@@ -1779,8 +1779,10 @@ function lobAnnualTotal(side) {
 function lobInitRowHTML(side, idx, row) {
   return `<div class="lob-row init-row">
     <input type="text" placeholder="項目名（例: 本体代金）" value="${escapeAttr(row.name)}"
+      autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"
       oninput="lobUpdateRow('${side}','init',${idx},'name',this.value)">
     <input type="number" placeholder="0" value="${row.amount || ''}"
+      autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"
       oninput="lobUpdateRow('${side}','init',${idx},'amount',this.value)">
     <button class="delete-btn" onclick="lobRemoveRow('${side}','init',${idx})" title="削除">×</button>
   </div>`;
@@ -1790,12 +1792,16 @@ function lobAnnualRowHTML(side, idx, row) {
   const annualTotal = lobRowAnnual(row);
   return `<div class="lob-row">
     <input type="text" placeholder="項目名（例: 駐車場代）" value="${escapeAttr(row.name)}"
+      autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"
       oninput="lobUpdateRow('${side}','annual',${idx},'name',this.value)">
     <input type="number" placeholder="0" value="${row.unitPrice || ''}"
+      autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"
       oninput="lobUpdateRow('${side}','annual',${idx},'unitPrice',this.value)">
     <input type="number" placeholder="1" value="${row.freq || ''}" step="0.1"
+      autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other"
       oninput="lobUpdateRow('${side}','annual',${idx},'freq',this.value)">
-    <select onchange="lobUpdateRow('${side}','annual',${idx},'freqUnit',this.value)">
+    <select onchange="lobUpdateRow('${side}','annual',${idx},'freqUnit',this.value)"
+      autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
       ${['年','月','週','日'].map(u => `<option value="${u}" ${row.freqUnit===u?'selected':''}>回/${u}</option>`).join('')}
     </select>
     <span class="lob-rowtotal" data-rowtotal="${side}-annual-${idx}">${fmt(Math.round(annualTotal))} 円/年</span>
