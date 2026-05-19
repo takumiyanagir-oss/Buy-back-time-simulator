@@ -684,6 +684,95 @@ body {
   margin: 0 4px 10px;
 }
 .lob-chart-wrap canvas { width: 100% !important; max-height: 360px; }
+
+/* ── Lease or Buy ケース管理 ── */
+.lob-list-header {
+  display: flex; align-items: center; justify-content: space-between;
+  gap: 16px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.lob-list-title { font-size: 1.2rem; font-weight: 600; letter-spacing: 0.04em; margin: 0; }
+.lob-list-sub { font-size: 0.78rem; color: var(--text-muted); margin: 4px 0 0; }
+
+.lob-new-btn {
+  padding: 10px 18px; border-radius: 99px; font-size: 0.85rem; font-weight: 600;
+  border: none; background: var(--primary); color: white; cursor: pointer;
+  transition: all 0.15s; white-space: nowrap;
+}
+.lob-new-btn:hover { background: var(--primary-dark); transform: translateY(-1px); }
+
+.lob-empty-list {
+  text-align: center; padding: 60px 24px; color: var(--text-muted);
+  background: var(--card); border: 1px dashed var(--border); border-radius: var(--radius);
+}
+.lob-empty-list .icon { font-size: 2.6rem; margin-bottom: 12px; opacity: 0.7; }
+.lob-empty-list h3 { font-weight: 600; margin-bottom: 6px; }
+.lob-empty-list p { font-size: 0.85rem; line-height: 1.6; }
+
+.lob-cases-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+.lob-case-card {
+  background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 16px; display: flex; flex-direction: column; gap: 10px;
+  transition: all 0.15s;
+  box-shadow: var(--shadow);
+}
+.lob-case-card:hover { border-color: var(--primary); transform: translateY(-2px); }
+.lob-case-card-title {
+  font-size: 1rem; font-weight: 600; cursor: pointer;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+  overflow: hidden; line-height: 1.4;
+}
+.lob-case-card-title:hover { color: var(--primary); }
+
+.lob-case-vs {
+  font-size: 0.78rem; color: var(--text-muted); line-height: 1.55;
+  background: var(--bg); padding: 8px 10px; border-radius: 6px;
+}
+.lob-case-vs strong { color: var(--text); font-weight: 500; }
+
+.lob-case-summary {
+  display: flex; justify-content: space-between; align-items: baseline;
+  padding: 8px 0; border-top: 1px solid var(--border); border-bottom: 1px solid var(--border);
+}
+.lob-case-summary .save-label { font-size: 0.7rem; color: var(--text-muted); }
+.lob-case-summary .save-value { font-size: 1rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.lob-case-summary .save-value.positive { color: var(--success); }
+.lob-case-summary .save-value.muted { color: var(--text-muted); font-weight: 500; font-size: 0.85rem; }
+
+.lob-case-meta {
+  display: flex; justify-content: space-between; align-items: center;
+  font-size: 0.7rem; color: var(--text-muted);
+}
+.lob-case-actions { display: flex; gap: 4px; }
+.lob-case-actions button {
+  padding: 5px 9px; border-radius: 6px; border: 1px solid var(--border);
+  background: var(--card); cursor: pointer; font-size: 0.72rem;
+  color: var(--text-muted); transition: all 0.15s;
+}
+.lob-case-actions button:hover { border-color: var(--primary); color: var(--primary); }
+.lob-case-actions button.danger:hover { border-color: var(--danger); color: var(--danger); background: #fee2e2; }
+:root.dark .lob-case-actions button.danger:hover { background: #450a0a; }
+
+.lob-edit-header {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 18px; flex-wrap: wrap;
+}
+.lob-back-btn {
+  padding: 8px 14px; border-radius: 99px; font-size: 0.82rem; font-weight: 500;
+  border: 1px solid var(--border); background: var(--card); color: var(--text);
+  cursor: pointer; transition: all 0.15s; white-space: nowrap;
+}
+.lob-back-btn:hover { background: var(--primary-light); border-color: var(--primary); }
+
+.lob-title-input {
+  flex: 1; min-width: 200px;
+  padding: 10px 14px; border: 1px solid var(--border); border-radius: 10px;
+  font-size: 1.1rem; font-weight: 600; outline: none;
+  background: var(--card); color: var(--text); transition: border-color 0.2s;
+}
+.lob-title-input:focus { border-color: var(--primary); }
 </style>
 </head>
 <body>
@@ -870,75 +959,96 @@ body {
 <div class="tab-panel" id="tab-lob">
 <div class="lob-container" data-1p-ignore data-lpignore="true">
 
-  <div class="lob-grid">
-    <div class="card lob-option" data-side="A">
-      <div class="lob-option-header">
-        <span class="lob-badge lob-badge-a">Option A</span>
-        <input type="text" class="lob-label-input" id="lobLabelA" placeholder="例: 車を所有 / 家を買う" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+  <!-- 一覧ビュー -->
+  <div id="lobListView">
+    <div class="lob-list-header">
+      <div>
+        <h2 class="lob-list-title">⚖ 比較ケース一覧</h2>
+        <p class="lob-list-sub">保存したケースをいつでも呼び出せます</p>
       </div>
-
-      <div class="lob-section">
-        <div class="lob-section-title">初期費用</div>
-        <div id="lobInitA"></div>
-        <button class="lob-add-btn" onclick="lobAddRow('A','init')">＋ 行を追加</button>
-      </div>
-
-      <div class="lob-section">
-        <div class="lob-section-title">維持費（ランニング）</div>
-        <div id="lobAnnualA"></div>
-        <button class="lob-add-btn" onclick="lobAddRow('A','annual')">＋ 行を追加</button>
-      </div>
-
-      <div class="lob-section">
-        <div class="lob-section-title">期末の売却額・返戻金</div>
-        <div class="lob-residual-wrap">
-          <input type="number" class="num-input lob-residual" id="lobResidualA" value="0" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
-          <span class="unit">円</span>
-        </div>
-        <p class="lob-hint">期間終了時に戻ってくる金額（残価・解約返戻金など。なければ0）</p>
-      </div>
+      <button class="lob-new-btn" onclick="lobNewCase()">＋ 新規ケース</button>
     </div>
-
-    <div class="card lob-option" data-side="B">
-      <div class="lob-option-header">
-        <span class="lob-badge lob-badge-b">Option B</span>
-        <input type="text" class="lob-label-input" id="lobLabelB" placeholder="例: カーシェア＋公共交通 / 賃貸" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
-      </div>
-
-      <div class="lob-section">
-        <div class="lob-section-title">初期費用</div>
-        <div id="lobInitB"></div>
-        <button class="lob-add-btn" onclick="lobAddRow('B','init')">＋ 行を追加</button>
-      </div>
-
-      <div class="lob-section">
-        <div class="lob-section-title">維持費（ランニング）</div>
-        <div id="lobAnnualB"></div>
-        <button class="lob-add-btn" onclick="lobAddRow('B','annual')">＋ 行を追加</button>
-      </div>
-
-      <div class="lob-section">
-        <div class="lob-section-title">期末の売却額・返戻金</div>
-        <div class="lob-residual-wrap">
-          <input type="number" class="num-input lob-residual" id="lobResidualB" value="0" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
-          <span class="unit">円</span>
-        </div>
-        <p class="lob-hint">期間終了時に戻ってくる金額（残価・解約返戻金など。なければ0）</p>
-      </div>
-    </div>
+    <div id="lobCasesList"></div>
   </div>
 
-  <div class="card lob-shared">
-    <div class="lob-section-title">⏳ 比較期間</div>
-    <div class="input-wrap">
-      <input type="range" id="lobPeriodSlider" min="1" max="40" step="1" value="5" oninput="document.getElementById('lobPeriod').value=this.value;lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true">
-      <input type="number" class="num-input" id="lobPeriod" value="5" min="1" max="100" oninput="document.getElementById('lobPeriodSlider').value=Math.min(this.value,40);lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
-      <span class="unit">年</span>
+  <!-- 編集ビュー -->
+  <div id="lobEditView" style="display:none">
+    <div class="lob-edit-header">
+      <button class="lob-back-btn" onclick="lobBackToList()">← 一覧に戻る</button>
+      <input type="text" class="lob-title-input" id="lobCaseTitle" placeholder="ケース名（例: 車を買うか？）" oninput="lobUpdateTitle(this.value)" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
     </div>
-    <p class="lob-hint">この期間の総コストで A と B を比較します（時給は「家電ROI」タブのものを使用）</p>
+
+    <div class="lob-grid">
+      <div class="card lob-option" data-side="A">
+        <div class="lob-option-header">
+          <span class="lob-badge lob-badge-a">Option A</span>
+          <input type="text" class="lob-label-input" id="lobLabelA" placeholder="例: 車を所有 / 家を買う" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+        </div>
+
+        <div class="lob-section">
+          <div class="lob-section-title">初期費用</div>
+          <div id="lobInitA"></div>
+          <button class="lob-add-btn" onclick="lobAddRow('A','init')">＋ 行を追加</button>
+        </div>
+
+        <div class="lob-section">
+          <div class="lob-section-title">維持費（ランニング）</div>
+          <div id="lobAnnualA"></div>
+          <button class="lob-add-btn" onclick="lobAddRow('A','annual')">＋ 行を追加</button>
+        </div>
+
+        <div class="lob-section">
+          <div class="lob-section-title">期末の売却額・返戻金</div>
+          <div class="lob-residual-wrap">
+            <input type="number" class="num-input lob-residual" id="lobResidualA" value="0" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+            <span class="unit">円</span>
+          </div>
+          <p class="lob-hint">期間終了時に戻ってくる金額（残価・解約返戻金など。なければ0）</p>
+        </div>
+      </div>
+
+      <div class="card lob-option" data-side="B">
+        <div class="lob-option-header">
+          <span class="lob-badge lob-badge-b">Option B</span>
+          <input type="text" class="lob-label-input" id="lobLabelB" placeholder="例: カーシェア＋公共交通 / 賃貸" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+        </div>
+
+        <div class="lob-section">
+          <div class="lob-section-title">初期費用</div>
+          <div id="lobInitB"></div>
+          <button class="lob-add-btn" onclick="lobAddRow('B','init')">＋ 行を追加</button>
+        </div>
+
+        <div class="lob-section">
+          <div class="lob-section-title">維持費（ランニング）</div>
+          <div id="lobAnnualB"></div>
+          <button class="lob-add-btn" onclick="lobAddRow('B','annual')">＋ 行を追加</button>
+        </div>
+
+        <div class="lob-section">
+          <div class="lob-section-title">期末の売却額・返戻金</div>
+          <div class="lob-residual-wrap">
+            <input type="number" class="num-input lob-residual" id="lobResidualB" value="0" oninput="lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+            <span class="unit">円</span>
+          </div>
+          <p class="lob-hint">期間終了時に戻ってくる金額（残価・解約返戻金など。なければ0）</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="card lob-shared">
+      <div class="lob-section-title">⏳ 比較期間</div>
+      <div class="input-wrap">
+        <input type="range" id="lobPeriodSlider" min="1" max="40" step="1" value="5" oninput="document.getElementById('lobPeriod').value=this.value;lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true">
+        <input type="number" class="num-input" id="lobPeriod" value="5" min="1" max="100" oninput="document.getElementById('lobPeriodSlider').value=Math.min(this.value,40);lobCalc()" autocomplete="off" data-1p-ignore data-lpignore="true" data-form-type="other">
+        <span class="unit">年</span>
+      </div>
+      <p class="lob-hint">この期間の総コストで A と B を比較します（時給は「家電ROI」タブのものを使用）</p>
+    </div>
+
+    <div id="lobResult"></div>
   </div>
 
-  <div id="lobResult"></div>
 </div>
 </div><!-- /tab-lob -->
 
@@ -982,21 +1092,7 @@ function applyState(state) {
     document.getElementById('dividendYieldDisplay').textContent = state.dividendYield + '%';
   }
   if (state.lob && typeof state.lob === 'object') {
-    lobState = {
-      periodYears: state.lob.periodYears || 5,
-      A: {
-        label: state.lob.A?.label || '',
-        init: Array.isArray(state.lob.A?.init) ? state.lob.A.init : [],
-        annual: Array.isArray(state.lob.A?.annual) ? state.lob.A.annual : [],
-        residual: state.lob.A?.residual || 0,
-      },
-      B: {
-        label: state.lob.B?.label || '',
-        init: Array.isArray(state.lob.B?.init) ? state.lob.B.init : [],
-        annual: Array.isArray(state.lob.B?.annual) ? state.lob.B.annual : [],
-        residual: state.lob.B?.residual || 0,
-      },
-    };
+    lobState = lobMigrate(state.lob);
   }
   return true;
 }
@@ -1501,21 +1597,7 @@ function loadFromHash() {
       document.getElementById('dividendYieldDisplay').textContent = state.dividendYield + '%';
     }
     if (state.lob && typeof state.lob === 'object') {
-      lobState = {
-        periodYears: state.lob.periodYears || 5,
-        A: {
-          label: state.lob.A?.label || '',
-          init: Array.isArray(state.lob.A?.init) ? state.lob.A.init : [],
-          annual: Array.isArray(state.lob.A?.annual) ? state.lob.A.annual : [],
-          residual: state.lob.A?.residual || 0,
-        },
-        B: {
-          label: state.lob.B?.label || '',
-          init: Array.isArray(state.lob.B?.init) ? state.lob.B.init : [],
-          annual: Array.isArray(state.lob.B?.annual) ? state.lob.B.annual : [],
-          residual: state.lob.B?.residual || 0,
-        },
-      };
+      lobState = lobMigrate(state.lob);
     }
     return true;
   } catch(e) { return false; }
@@ -1639,7 +1721,7 @@ function switchTab(id) {
   const idx = TAB_ORDER.indexOf(id);
   document.querySelectorAll('.tab-btn')[idx >= 0 ? idx : 0].classList.add('active');
   if (id === 'wage') wCalc();
-  if (id === 'lob') lobCalc();
+  if (id === 'lob') lobRender();
 }
 
 // ── 時給計算 ──
@@ -1785,11 +1867,57 @@ function wCalc() {
 
 // ── Lease or Buy ──
 const LOB_FREQ_MULT = { '年': 1, '月': 12, '週': 52, '日': 365, '回': 1 };
-let lobState = {
-  periodYears: 5,
-  A: { label: '', init: [], annual: [], residual: 0 },
-  B: { label: '', init: [], annual: [], residual: 0 },
-};
+
+function lobMakeCase() {
+  return {
+    id: 'case_' + Date.now() + '_' + Math.random().toString(36).slice(2,6),
+    title: '無題のケース',
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+    periodYears: 5,
+    A: { label: '', init: [], annual: [], residual: 0 },
+    B: { label: '', init: [], annual: [], residual: 0 },
+  };
+}
+
+let lobState = { currentCaseId: null, cases: {} };
+
+function lobMigrate(input) {
+  if (!input || typeof input !== 'object') return { currentCaseId: null, cases: {} };
+  // 新構造ならそのまま採用
+  if (input.cases && typeof input.cases === 'object') {
+    return { currentCaseId: input.currentCaseId || null, cases: input.cases };
+  }
+  // 旧構造 {periodYears, A, B} を1ケースに変換
+  const out = { currentCaseId: null, cases: {} };
+  const hasContent = (input.A && (input.A.label || (input.A.init || []).length || (input.A.annual || []).length))
+                   || (input.B && (input.B.label || (input.B.init || []).length || (input.B.annual || []).length));
+  if (hasContent) {
+    const c = lobMakeCase();
+    c.title = '保存済みケース';
+    c.periodYears = input.periodYears || 5;
+    c.A = {
+      label: input.A?.label || '',
+      init: Array.isArray(input.A?.init) ? input.A.init : [],
+      annual: Array.isArray(input.A?.annual) ? input.A.annual : [],
+      residual: input.A?.residual || 0,
+    };
+    c.B = {
+      label: input.B?.label || '',
+      init: Array.isArray(input.B?.init) ? input.B.init : [],
+      annual: Array.isArray(input.B?.annual) ? input.B.annual : [],
+      residual: input.B?.residual || 0,
+    };
+    out.cases[c.id] = c;
+  }
+  return out;
+}
+
+function lobC() {
+  if (!lobState.currentCaseId) return null;
+  return lobState.cases[lobState.currentCaseId] || null;
+}
+function lobTouchCurrent() { const c = lobC(); if (c) c.updatedAt = Date.now(); }
 
 function lobNewRow(kind) {
   return kind === 'init'
@@ -1798,27 +1926,40 @@ function lobNewRow(kind) {
 }
 
 function lobAddRow(side, kind) {
-  lobState[side][kind].push(lobNewRow(kind));
-  lobRender();
+  const c = lobC(); if (!c) return;
+  c[side][kind].push(lobNewRow(kind));
+  lobTouchCurrent();
+  lobRenderEdit();
   lobCalc();
 }
 
 function lobRemoveRow(side, kind, idx) {
-  lobState[side][kind].splice(idx, 1);
-  lobRender();
+  const c = lobC(); if (!c) return;
+  c[side][kind].splice(idx, 1);
+  lobTouchCurrent();
+  lobRenderEdit();
   lobCalc();
 }
 
 function lobUpdateRow(side, kind, idx, field, val) {
-  const row = lobState[side][kind][idx];
+  const c = lobC(); if (!c) return;
+  const row = c[side][kind][idx];
+  if (!row) return;
   if (field === 'name' || field === 'freqUnit') row[field] = val;
   else row[field] = Number(val) || 0;
+  lobTouchCurrent();
   lobCalc();
-  // 年額表示のみ即時更新（フル再描画でフォーカスを失わせない）
   if (kind === 'annual') {
     const el = document.querySelector(`[data-rowtotal="${side}-annual-${idx}"]`);
     if (el) el.textContent = fmt(Math.round(lobRowAnnual(row))) + ' 円/年';
   }
+}
+
+function lobUpdateTitle(val) {
+  const c = lobC(); if (!c) return;
+  c.title = val;
+  lobTouchCurrent();
+  saveState();
 }
 
 function lobRowAnnual(row) {
@@ -1826,10 +1967,12 @@ function lobRowAnnual(row) {
 }
 
 function lobInitTotal(side) {
-  return lobState[side].init.reduce((s, r) => s + (r.amount || 0), 0);
+  const c = lobC(); if (!c) return 0;
+  return c[side].init.reduce((s, r) => s + (r.amount || 0), 0);
 }
 function lobAnnualTotal(side) {
-  return lobState[side].annual.reduce((s, r) => s + lobRowAnnual(r), 0);
+  const c = lobC(); if (!c) return 0;
+  return c[side].annual.reduce((s, r) => s + lobRowAnnual(r), 0);
 }
 
 function lobInitRowHTML(side, idx, row) {
@@ -1871,7 +2014,11 @@ function escapeAttr(s) {
 
 function lobRenderSection(side, kind) {
   const containerId = (kind === 'init' ? 'lobInit' : 'lobAnnual') + side;
-  const rows = lobState[side][kind];
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  const c = lobC();
+  if (!c) { container.innerHTML = ''; return; }
+  const rows = c[side][kind];
   let html = '';
   if (kind === 'init') {
     html += `<div class="lob-row-head init-row-head"><span>項目名</span><span>金額(円)</span><span></span></div>`;
@@ -1884,48 +2031,174 @@ function lobRenderSection(side, kind) {
     const sub = lobAnnualTotal(side);
     if (rows.length > 0) html += `<div class="lob-section-subtotal"><span>年間合計</span><span class="v">${fmt(Math.round(sub))} 円/年</span></div>`;
   }
-  document.getElementById(containerId).innerHTML = html;
+  container.innerHTML = html;
 }
 
+// ── ビュー切り替え（一覧 ⇄ 編集）
 function lobRender() {
-  document.getElementById('lobLabelA').value = lobState.A.label;
-  document.getElementById('lobLabelB').value = lobState.B.label;
-  document.getElementById('lobResidualA').value = lobState.A.residual;
-  document.getElementById('lobResidualB').value = lobState.B.residual;
-  document.getElementById('lobPeriod').value = lobState.periodYears;
-  document.getElementById('lobPeriodSlider').value = Math.min(lobState.periodYears, 40);
+  const list = document.getElementById('lobListView');
+  const edit = document.getElementById('lobEditView');
+  if (!list || !edit) return;
+  if (!lobState.currentCaseId || !lobState.cases[lobState.currentCaseId]) {
+    lobState.currentCaseId = null;
+    list.style.display = '';
+    edit.style.display = 'none';
+    lobRenderList();
+  } else {
+    list.style.display = 'none';
+    edit.style.display = '';
+    lobRenderEdit();
+    lobCalc();
+  }
+}
+
+function lobRenderEdit() {
+  const c = lobC(); if (!c) return;
+  document.getElementById('lobCaseTitle').value = c.title || '';
+  document.getElementById('lobLabelA').value = c.A.label || '';
+  document.getElementById('lobLabelB').value = c.B.label || '';
+  document.getElementById('lobResidualA').value = c.A.residual || 0;
+  document.getElementById('lobResidualB').value = c.B.residual || 0;
+  document.getElementById('lobPeriod').value = c.periodYears || 5;
+  document.getElementById('lobPeriodSlider').value = Math.min(c.periodYears || 5, 40);
   ['A','B'].forEach(s => { lobRenderSection(s, 'init'); lobRenderSection(s, 'annual'); });
 }
 
-function lobCalc() {
-  // ラベル・残価・期間を state に取り込み
-  lobState.A.label = document.getElementById('lobLabelA').value;
-  lobState.B.label = document.getElementById('lobLabelB').value;
-  lobState.A.residual = Number(document.getElementById('lobResidualA').value) || 0;
-  lobState.B.residual = Number(document.getElementById('lobResidualB').value) || 0;
-  lobState.periodYears = Number(document.getElementById('lobPeriod').value) || 1;
+function lobCaseSummary(c) {
+  const calc = (side) => {
+    const init = (c[side].init || []).reduce((s, r) => s + (r.amount || 0), 0);
+    const annual = (c[side].annual || []).reduce((s, r) => s + lobRowAnnual(r), 0);
+    const residual = c[side].residual || 0;
+    return { init, annual, residual, total: init + annual * (c.periodYears || 0) - residual };
+  };
+  return { a: calc('A'), b: calc('B') };
+}
 
-  const years = lobState.periodYears;
+function lobRenderList() {
+  const container = document.getElementById('lobCasesList');
+  if (!container) return;
+  const cases = Object.values(lobState.cases).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+  if (cases.length === 0) {
+    container.innerHTML = `<div class="lob-empty-list">
+      <div class="icon">⚖</div>
+      <h3>まだケースがありません</h3>
+      <p>右上の「＋ 新規ケース」を押して、初めての比較を始めましょう。<br>
+      賃貸 vs 持ち家、サブスク vs 買い切り、リース vs 購入 など、<br>
+      「初期費用＋ランニングコスト」で比べたい選択肢を登録できます。</p>
+    </div>`;
+    return;
+  }
+  container.innerHTML = `<div class="lob-cases-grid">${cases.map(c => {
+    const sum = lobCaseSummary(c);
+    const aLabel = c.A.label || '（A未入力）';
+    const bLabel = c.B.label || '（B未入力）';
+    const hasA = sum.a.init || sum.a.annual;
+    const hasB = sum.b.init || sum.b.annual;
+    let saveBlock = '<span class="save-value muted">入力中</span>';
+    if (hasA && hasB) {
+      const diff = Math.abs(sum.a.total - sum.b.total);
+      const cheaper = sum.a.total <= sum.b.total ? aLabel : bLabel;
+      saveBlock = `<div style="text-align:right">
+          <div class="save-value positive">${fmt(Math.round(diff))} 円お得</div>
+          <div class="save-label">${escapeAttr(cheaper)} を選ぶと</div>
+        </div>`;
+    }
+    const dt = new Date(c.updatedAt || c.createdAt || Date.now());
+    const dateStr = `${dt.getFullYear()}/${String(dt.getMonth()+1).padStart(2,'0')}/${String(dt.getDate()).padStart(2,'0')}`;
+    return `<div class="lob-case-card">
+      <div class="lob-case-card-title" onclick="lobEditCase('${c.id}')" title="クリックで編集">${escapeAttr(c.title || '無題のケース')}</div>
+      <div class="lob-case-vs"><strong>A:</strong> ${escapeAttr(aLabel)}<br><strong>B:</strong> ${escapeAttr(bLabel)}<br>期間 ${c.periodYears || 0} 年</div>
+      <div class="lob-case-summary">
+        <span class="save-label">差額</span>
+        ${saveBlock}
+      </div>
+      <div class="lob-case-meta">
+        <span>更新: ${dateStr}</span>
+        <div class="lob-case-actions">
+          <button onclick="lobEditCase('${c.id}')">編集</button>
+          <button onclick="lobDuplicateCase('${c.id}')">複製</button>
+          <button class="danger" onclick="lobDeleteCase('${c.id}')">削除</button>
+        </div>
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ── ケース操作
+function lobNewCase() {
+  const c = lobMakeCase();
+  lobState.cases[c.id] = c;
+  lobState.currentCaseId = c.id;
+  lobRender();
+  saveState();
+}
+
+function lobEditCase(id) {
+  if (!lobState.cases[id]) return;
+  lobState.currentCaseId = id;
+  lobRender();
+  saveState();
+}
+
+function lobBackToList() {
+  lobState.currentCaseId = null;
+  lobRender();
+  saveState();
+}
+
+function lobDeleteCase(id) {
+  const c = lobState.cases[id]; if (!c) return;
+  if (!confirm(`「${c.title || '無題のケース'}」を削除しますか？\nこの操作は取り消せません。`)) return;
+  delete lobState.cases[id];
+  if (lobState.currentCaseId === id) lobState.currentCaseId = null;
+  lobRender();
+  saveState();
+}
+
+function lobDuplicateCase(id) {
+  const src = lobState.cases[id]; if (!src) return;
+  const copy = JSON.parse(JSON.stringify(src));
+  copy.id = 'case_' + Date.now() + '_' + Math.random().toString(36).slice(2,6);
+  copy.title = (src.title || '無題のケース') + '（コピー）';
+  copy.createdAt = Date.now();
+  copy.updatedAt = Date.now();
+  lobState.cases[copy.id] = copy;
+  lobRender();
+  saveState();
+}
+
+function lobCalc() {
+  const c = lobC();
+  const panel = document.getElementById('lobResult');
+  if (!c || !panel) { return; }
+  // DOM値を state に取り込み
+  c.periodYears = Number(document.getElementById('lobPeriod').value) || 1;
+  c.A.label = document.getElementById('lobLabelA').value;
+  c.B.label = document.getElementById('lobLabelB').value;
+  c.A.residual = Number(document.getElementById('lobResidualA').value) || 0;
+  c.B.residual = Number(document.getElementById('lobResidualB').value) || 0;
+
+  const years = c.periodYears;
   const calc = (side) => {
     const init = lobInitTotal(side);
     const annual = lobAnnualTotal(side);
-    const residual = lobState[side].residual || 0;
+    const residual = c[side].residual || 0;
     const total = init + annual * years - residual;
     return { init, annual, residual, total, monthly: total / (years * 12) };
   };
   const a = calc('A'), b = calc('B');
 
-  const aLabel = lobState.A.label || 'Option A';
-  const bLabel = lobState.B.label || 'Option B';
+  const aLabel = c.A.label || 'Option A';
+  const bLabel = c.B.label || 'Option B';
 
   const hasA = a.init || a.annual;
   const hasB = b.init || b.annual;
-  const panel = document.getElementById('lobResult');
 
   if (!hasA && !hasB) {
     panel.innerHTML = `<div class="lob-empty-result">
       上の A / B 双方に項目を入力すると、総コスト比較と「追加で必要な労働時間」が表示されます
     </div>`;
+    lobTouchCurrent();
     saveState();
     return;
   }
@@ -1992,6 +2265,7 @@ function lobCalc() {
     lobRenderChart(years, aSeries, bSeries, aLabel, bLabel);
   }
 
+  lobTouchCurrent();
   saveState();
 }
 
@@ -2060,7 +2334,6 @@ initDarkMode();
   render();
   wCalc();
   lobRender();
-  lobCalc();
 })();
 </script>
 </body>
