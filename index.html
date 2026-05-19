@@ -990,36 +990,81 @@ function applyState(state) {
   return true;
 }
 
+let _saveTimer = null;
+let _lastSavedJSON = null;
+
 function saveState() {
   const state = getState();
-  // ローカルにも保存（オフライン対応）
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-  // GASに非同期で保存（固定URLから家族全員が最新状態を読める）
-  fetch(GAS_URL, {
-    method: 'POST',
-    mode: 'no-cors',
-    body: JSON.stringify(state)
-  }).catch(() => {});
+  state._updatedAt = Date.now();
+  const json = JSON.stringify(state);
+  // ローカルには即時・同期で保存（リロードしても確実に残る正本）
+  try { localStorage.setItem(STORAGE_KEY, json); } catch(e) {}
+  _lastSavedJSON = json;
+  // GASへはdebounce（500ms以内の連続入力は最後の1回だけ送る）
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _saveTimer = null;
+    fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: json }).catch(() => {});
+  }, 500);
 }
 
+// ページ離脱時に未送信があれば sendBeacon で確実に送る
+window.addEventListener('pagehide', () => {
+  if (_saveTimer && _lastSavedJSON) {
+    clearTimeout(_saveTimer);
+    _saveTimer = null;
+    try {
+      if (navigator.sendBeacon) {
+        navigator.sendBeacon(GAS_URL, new Blob([_lastSavedJSON], { type: 'text/plain' }));
+      } else {
+        fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: _lastSavedJSON, keepalive: true }).catch(() => {});
+      }
+    } catch(e) {}
+  }
+});
+
 async function loadState() {
-  // まずGASから最新状態を取得
-  try {
-    const res = await fetch(GAS_URL);
-    const state = await res.json();
-    if (state && Object.keys(state).length > 0) {
-      applyState(state);
-      // ローカルにもキャッシュ
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-      return true;
-    }
-  } catch(e) {}
-  // GAS失敗時はローカルストレージにフォールバック
+  // localStorage を先に読む（同期・確実）
+  let localState = null;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    return applyState(JSON.parse(raw));
-  } catch(e) { return false; }
+    if (raw) localState = JSON.parse(raw);
+  } catch(e) {}
+
+  // GASも取りに行く（短いタイムアウトで諦める）
+  let remoteState = null;
+  try {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 3000);
+    const res = await fetch(GAS_URL, { signal: ctrl.signal });
+    clearTimeout(timer);
+    remoteState = await res.json();
+    if (!remoteState || Object.keys(remoteState).length === 0) remoteState = null;
+  } catch(e) {}
+
+  // _updatedAt が新しい方を採用（local が同点以上なら local 優先で書き戻し競合を避ける）
+  let chosen = null, source = null;
+  if (localState && remoteState) {
+    const lt = localState._updatedAt || 0;
+    const rt = remoteState._updatedAt || 0;
+    if (lt >= rt) { chosen = localState; source = 'local'; }
+    else          { chosen = remoteState; source = 'remote'; }
+  } else if (localState)  { chosen = localState;  source = 'local'; }
+    else if (remoteState) { chosen = remoteState; source = 'remote'; }
+
+  if (!chosen) return false;
+  applyState(chosen);
+
+  // 採用元と反対側のストレージも整合させる
+  try {
+    if (source === 'remote') {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chosen));
+    } else if (source === 'local' && remoteState) {
+      // ローカルが新しいので GAS にも書き戻し
+      fetch(GAS_URL, { method: 'POST', mode: 'no-cors', body: JSON.stringify(chosen) }).catch(() => {});
+    }
+  } catch(e) {}
+  return true;
 }
 
 function initDarkMode() {
